@@ -1,0 +1,52 @@
+{
+  "name": "qr-checkin-app",
+  "version": "1.0.0",
+  "description": "QR Code Check-in Application",
+  "scripts": {
+    "start": "set HTTPS=true&&set SSL_CRT_FILE=cert.pem&&set SSL_KEY_FILE=key.pem&&react-scripts --openssl-legacy-provider start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "server": "node server.js"
+  },
+  "dependencies": {
+    "@types/file-saver": "^2.0.7",
+    "@types/react": "^17.0.11",
+    "@types/react-dom": "^17.0.8",
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
+    "axios": "^1.7.7",
+    "cors": "^2.8.5",
+    "file-saver": "^2.0.5",
+    "jsqr": "^1.4.0",
+    "moment-timezone": "^0.5.45",
+    "multer": "^1.4.5-lts.1",
+    "qr-checkin-app": "file:",
+    "quagga": "^0.12.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-qr-reader": "^3.0.0-beta-1",
+    "react-scripts": "4.0.3",
+    "typescript": "^4.3.5",
+    "xlsx": "^0.18.5"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "proxy": "https://192.168.0.119:3001"
+}
