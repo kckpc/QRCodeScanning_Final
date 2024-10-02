@@ -118,7 +118,7 @@ function App() {
 
       setParticipants(sortedParticipantsObj);
       setError(null);
-    } catch (err) {
+    } catch (err: unknown) {
       setError('無法獲取參與者資料。請稍後再試。');
       console.error('Error fetching participants:', err);
     }
@@ -147,7 +147,7 @@ function App() {
       setParticipants(sortedParticipantsObj);
       setTotalPeople(Object.keys(sortedParticipantsObj).length); // Update total people count
       setError(null);
-    } catch (err) {
+    } catch (err: unknown) {
       setError('無法獲取參與者資料。請稍後再試。');
       console.error('Error fetching participants:', err);
     }
@@ -208,7 +208,7 @@ function App() {
         setLastCheckInStatus(`ID: ${id} - ${response.data.message}`);
       }
       setError(null);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error checking participant:', err);
       setLastCheckInStatus(`ID: ${id} - 檢查參與者時發生錯誤`);
       setParticipant(null);
@@ -251,7 +251,7 @@ function App() {
       setCurrentActivityName(pendingActivityName);
       setError(null);
       setShowUpdateConfirmation(false);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('File upload error:', err);
       setUploadStatus('上傳檔案時發生錯誤');
       if (axios.isAxiosError(err) && err.response) {
@@ -271,7 +271,7 @@ function App() {
       setShowClearConfirmation(false);
       setParticipants({});
       setTotalPeople(response.data.totalPeople);
-    } catch (err) {
+    } catch (err: unknown) {
       setUploadStatus('清除參與者資料時發生錯誤');
       if (axios.isAxiosError(err) && err.response) {
         setError(`錯誤：${err.response.status} - ${err.response.data}`);
