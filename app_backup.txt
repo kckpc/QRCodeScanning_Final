@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { QrReader } from 'react-qr-reader';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
@@ -35,7 +35,6 @@ function formatToHKTime(date: Date): string {
 function App() {
   const [manualEntry, setManualEntry] = useState('');
   const [participant, setParticipant] = useState<Participant | null>(null);
-  const [status, setStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState('');
@@ -49,6 +48,7 @@ function App() {
   const [modeSwitchPassword, setModeSwitchPassword] = useState('');
   const [activityName, setActivityName] = useState('HKACM 二維碼簽到系統');
   const [currentActivityName, setCurrentActivityName] = useState('');
+  const [pendingActivityName, setPendingActivityName] = useState('');
   const [dailyCheckInCount, setDailyCheckInCount] = useState(0);
   const [lastCheckInStatus, setLastCheckInStatus] = useState('');
   const [totalPeople, setTotalPeople] = useState(0);
@@ -63,8 +63,8 @@ function App() {
 
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
-  const [cameraError, setCameraError] = useState<string | null>(null);
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+  const [isCameraAuthorized, setIsCameraAuthorized] = useState(false);
 
   const getCameras = useCallback(async () => {
     try {
@@ -96,12 +96,6 @@ function App() {
     // setTimeout(() => setScanning(true), 1000);
   };
 
-  const handleCameraError = (error: Error) => {
-    console.error('Camera error:', error);
-    setCameraError(`攝像頭錯誤: ${error.message}`);
-    setScanning(false);
-  };
-
   const fetchParticipants = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/participants`);
@@ -124,7 +118,7 @@ function App() {
 
       setParticipants(sortedParticipantsObj);
       setError(null);
-    } catch (err) {
+    } catch (err: unknown) {
       setError('無法獲取參與者資料。請稍後再試。');
       console.error('Error fetching participants:', err);
     }
@@ -153,7 +147,7 @@ function App() {
       setParticipants(sortedParticipantsObj);
       setTotalPeople(Object.keys(sortedParticipantsObj).length); // Update total people count
       setError(null);
-    } catch (err) {
+    } catch (err: unknown) {
       setError('無法獲取參與者資料。請稍後再試。');
       console.error('Error fetching participants:', err);
     }
@@ -164,7 +158,6 @@ function App() {
     if (manualEntry.trim()) {
       await checkParticipant(manualEntry);
       setManualEntry('');
-      setStatus('');
     }
   };
 
@@ -172,7 +165,7 @@ function App() {
     setManualEntry(event.target.value);
   };
 
-  const checkParticipant = async (id: string) => {
+  const checkParticipant = useCallback(async (id: string) => {
     console.log('Checking participant with ID:', id);
     setIsLoading(true);
     try {
@@ -215,7 +208,7 @@ function App() {
         setLastCheckInStatus(`ID: ${id} - ${response.data.message}`);
       }
       setError(null);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error checking participant:', err);
       setLastCheckInStatus(`ID: ${id} - 檢查參與者時發生錯誤`);
       setParticipant(null);
@@ -230,7 +223,7 @@ function App() {
         setTimeout(() => setScanning(true), 2000);
       }
     }
-  };
+  }, [autoScan, currentActivityName, isDemoMode]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -246,6 +239,7 @@ function App() {
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('activityName', pendingActivityName);
 
     try {
       const response = await axios.post(`${API_URL}/api/upload-participants`, formData, {
@@ -254,9 +248,10 @@ function App() {
       setUploadStatus('參與者資料更新成功');
       await fetchParticipants();
       setTotalPeople(response.data.totalPeople);
+      setCurrentActivityName(pendingActivityName);
       setError(null);
       setShowUpdateConfirmation(false);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('File upload error:', err);
       setUploadStatus('上傳檔案時發生錯誤');
       if (axios.isAxiosError(err) && err.response) {
@@ -276,7 +271,7 @@ function App() {
       setShowClearConfirmation(false);
       setParticipants({});
       setTotalPeople(response.data.totalPeople);
-    } catch (err) {
+    } catch (err: unknown) {
       setUploadStatus('清除參與者資料時發生錯誤');
       if (axios.isAxiosError(err) && err.response) {
         setError(`錯誤：${err.response.status} - ${err.response.data}`);
@@ -347,7 +342,7 @@ function App() {
           setShowModeSwitch(false);
           setModeSwitchPassword('');
           setError(null);
-          setStatus(`已切換至${newMode ? '演示' : '正式'}模式`);
+          setLastCheckInStatus(`已切換至${newMode ? '演示' : '正式'}模式`);
         } else {
           setError('切換模式失敗。請稍後再試。');
         }
@@ -364,6 +359,7 @@ function App() {
     setAutoScan(!autoScan);
     if (!autoScan) {
       setScanning(true);
+      setIsPreviewVisible(true);
     }
   };
 
@@ -372,7 +368,7 @@ function App() {
   };
 
   const handleCurrentActivityNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setCurrentActivityName(event.target.value);
+    setPendingActivityName(event.target.value);
   };
 
   const fetchTotalPeople = async () => {
@@ -385,34 +381,92 @@ function App() {
   };
 
   const toggleScanning = () => {
-    setScanning(!scanning);
-    setIsPreviewVisible(true); // Always show preview when toggling
+    if (scanning) {
+      setScanning(false);
+      setIsPreviewVisible(false);
+    } else {
+      setScanning(true);
+      setIsPreviewVisible(true);
+    }
+  };
+
+  const handleScan = useCallback((result: any) => {
+    if (result) {
+      const scannedText = result.getText();
+      console.log('Scan result:', scannedText);
+      checkParticipant(scannedText);
+      if (!autoScan) {
+        setScanning(false);
+        setIsPreviewVisible(false);
+      }
+    }
+  }, [autoScan, checkParticipant]);
+
+  const handleCameraAuthorization = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach(track => track.stop()); // Stop the stream immediately
+      setIsCameraAuthorized(true);
+      setError(null);
+    } catch (error) {
+      console.error('Error authorizing camera:', error);
+      setError('無法獲取攝像頭權限。請確保您已授予攝像頭訪問權限。');
+      setIsCameraAuthorized(false);
+    }
+  };
+
+  const fetchDailyCheckInCount = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/daily-check-in-count`);
+      setDailyCheckInCount(response.data.dailyCheckInCount);
+    } catch (error) {
+      console.error('Error fetching daily check-in count:', error);
+      setError('無法獲取今日總簽到次數');
+    }
+  };
+
+  const handleResetDailyCheckInCount = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/api/reset-daily-check-in-count`);
+      if (response.data.success) {
+        setDailyCheckInCount(0);
+        setLastCheckInStatus('今日總簽到次數已重置');
+      } else {
+        setError('重置今日總簽到次數失敗');
+      }
+    } catch (err) {
+      setError('重置今日總簽到次數時發生錯誤');
+      console.error('Error resetting daily check-in count:', err);
+    }
   };
 
   useEffect(() => {
-    const resetDailyCheckInCount = () => {
-      const now = new Date();
-      const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      const timeToMidnight = tomorrow.getTime() - now.getTime();
-
-      setTimeout(() => {
-        setDailyCheckInCount(0);
-        resetDailyCheckInCount(); // Set up the next day's reset
-      }, timeToMidnight);
+    const fetchInitialData = async () => {
+      await fetchTotalPeople();
+      await fetchDailyCheckInCount();
+      await fetchCurrentActivity();
     };
 
-    resetDailyCheckInCount(); // Set up the initial reset
-    fetchTotalPeople(); // Fetch total people when component mounts
+    fetchInitialData();
 
-    // Fetch total people every 5 minutes
-    const intervalId = setInterval(fetchTotalPeople, 5 * 60 * 1000);
+    // Fetch total people and daily check-in count every 5 minutes
+    const intervalId = setInterval(() => {
+      fetchTotalPeople();
+      fetchDailyCheckInCount();
+    }, 5 * 60 * 1000);
 
-    // Clean up the timeout and interval when the component unmounts
-    return () => {
-      clearTimeout(resetDailyCheckInCount as unknown as number);
-      clearInterval(intervalId);
-    };
+    return () => clearInterval(intervalId);
   }, []);
+
+  const fetchCurrentActivity = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/current-activity`);
+      setCurrentActivityName(response.data.currentActivityName);
+      setPendingActivityName(response.data.currentActivityName);
+    } catch (error) {
+      console.error('Error fetching current activity:', error);
+    }
+  };
 
   return (
     <div className="App">
@@ -467,7 +521,6 @@ function App() {
 
           <div className="qr-scanner-section">
             <p className="status-message">最後簽到狀態：{lastCheckInStatus}</p>
-            {scanning && <p className="scanned-code">掃描到的代碼：{manualEntry}</p>}
             
             <select 
               value={selectedCamera || ''} 
@@ -485,33 +538,33 @@ function App() {
               {isPreviewVisible && (
                 <QrReader
                   key={selectedCamera}
-                  onResult={(result, error) => {
-                    if (result && scanning) {
-                      const scannedText = result.getText();
-                      console.log('Scan result:', scannedText);
-                      setManualEntry(scannedText); // Update manualEntry with scanned text
-                      checkParticipant(scannedText);
-                      if (!autoScan) {
-                        setScanning(false);
-                      }
-                    }
-                    if (error) {
-                      console.error('QR Scan error:', error);
-                    }
-                  }}
+                  onResult={handleScan}
                   constraints={{ deviceId: selectedCamera || undefined, facingMode: 'environment' }}
                   videoStyle={{ width: '100%', height: 'auto', maxHeight: '80vh' }}
                   containerStyle={{ width: '100%', height: 'auto' }}
                   videoContainerStyle={{ width: '100%', height: 'auto', paddingTop: '75%', position: 'relative' }}
                 />
               )}
-              <button onClick={toggleScanning} className={scanning ? "stop-scan-button" : "scan-button"}>
+            </div>
+            <div className="scanner-controls">
+              <button onClick={handleCameraAuthorization} className="authorize-camera-button">
+                授權攝像頭
+              </button>
+              <button 
+                onClick={toggleScanning} 
+                className={scanning ? "stop-scan-button" : "scan-button"}
+                disabled={!isCameraAuthorized}
+              >
                 {scanning ? '停止掃描' : '開始掃描'}
               </button>
+              <button 
+                onClick={toggleAutoScan} 
+                className={`auto-scan-button ${autoScan ? 'active' : ''}`}
+                disabled={!isCameraAuthorized}
+              >
+                {autoScan ? '關閉自動掃描' : '開啟自動掃描'}
+              </button>
             </div>
-            <button onClick={toggleAutoScan} className={`auto-scan-button ${autoScan ? 'active' : ''}`}>
-              {autoScan ? '關閉自動掃描' : '開啟自動掃描'}
-            </button>
           </div>
 
           <p className="check-in-count">今日總簽到次數：{dailyCheckInCount}</p>
@@ -600,7 +653,7 @@ function App() {
                 />
                 <input
                   type="text"
-                  value={currentActivityName}
+                  value={pendingActivityName}
                   onChange={handleCurrentActivityNameChange}
                   placeholder="輸入當前活動名稱"
                   className="input-field"
@@ -614,6 +667,7 @@ function App() {
                 <button onClick={() => setShowUpdateConfirmation(true)} className="upload-button">上傳 Excel 檔案</button>
                 <button onClick={() => setShowClearConfirmation(true)} className="clear-button">清除所有資料</button>
                 <button onClick={handleExportExcel} className="export-button">匯出簽到記錄</button>
+                <button onClick={handleResetDailyCheckInCount} className="reset-button">重置今日總簽到次數</button>
               </div>
               <p className="upload-status">{uploadStatus}</p>
               {showUpdateConfirmation && (

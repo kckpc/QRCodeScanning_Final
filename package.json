@@ -4,7 +4,7 @@
   "description": "QR Code Check-in Application",
   "scripts": {
     "start": "set HTTPS=true&&set SSL_CRT_FILE=cert.pem&&set SSL_KEY_FILE=key.pem&&react-scripts --openssl-legacy-provider start",
-    "build": "export NODE_OPTIONS=--openssl-legacy-provider && react-scripts build",
+    "build": "set NODE_OPTIONS=--openssl-legacy-provider&& react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "server": "node server.js"

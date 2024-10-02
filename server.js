@@ -7,10 +7,12 @@ const fs = require('fs');
 const path = require('path');
 const moment = require('moment-timezone');
 const https = require('https');
+const os = require('os');
 
 const app = express();
 const uploadDir = 'uploads/';
 const dataFilePath = path.join(__dirname, 'participants_data.json');
+const activityFilePath = path.join(__dirname, 'current_activity.json');
 
 if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir);
@@ -29,8 +31,21 @@ const upload = multer({
   }
 });
 
+// Get the local network IP address
+const networkInterfaces = os.networkInterfaces();
+const localNetworkIP = networkInterfaces.en0 ? networkInterfaces.en0.find(iface => iface.family === 'IPv4').address : '192.168.0.119';
+
+// Update CORS configuration to allow requests from both localhost and the local network IP range
+const allowedOrigins = ['https://localhost:3000', /^https:\/\/192\.168\.0\.\d{1,3}:3000$/];
+
 app.use(cors({
-  origin: 'https://192.168.0.119:3000', // 你的前端應用 URL
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.some(pattern => pattern instanceof RegExp ? pattern.test(origin) : pattern === origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -41,15 +56,39 @@ app.use(bodyParser.json());
 let participants = {};
 let isDemoMode = true;
 let dailyCheckInCount = 0;
+let currentActivityName = 'HKACM';
 
+// Load participants data
 if (fs.existsSync(dataFilePath)) {
   const data = fs.readFileSync(dataFilePath, 'utf8');
   participants = JSON.parse(data);
 }
 
+
+// Load current activity name
+if (fs.existsSync(activityFilePath)) {
+  const activityData = fs.readFileSync(activityFilePath, 'utf8');
+  currentActivityName = JSON.parse(activityData).currentActivityName || 'HKACM';
+} else {
+  // If the file doesn't exist, create it with the default name
+  saveActivityName();
+}
+
+
 function saveParticipantsData() {
   fs.writeFileSync(dataFilePath, JSON.stringify(participants, null, 2));
 }
+
+
+function saveActivityName() {
+  try {
+    fs.writeFileSync(activityFilePath, JSON.stringify({ currentActivityName }, null, 2));
+  } catch (error) {
+    console.error('Error writing activity name to file:', error);
+    throw error;
+  }
+}
+
 
 function resetDailyCheckInCount() {
   const now = new Date();
@@ -70,6 +109,7 @@ app.post('/api/set-demo-mode', (req, res) => {
   res.json({ success: true, message: `Switched to ${isDemoMode ? 'Demo' : 'Production'} mode` });
 });
 
+
 app.get('/api/participants', (req, res) => {
   const participantList = Object.entries(participants).map(([id, data]) => ({
     id,
@@ -77,6 +117,7 @@ app.get('/api/participants', (req, res) => {
   }));
   res.json(participantList);
 });
+
 
 app.post('/api/clear-participants', (req, res) => {
   try {
@@ -87,6 +128,7 @@ app.post('/api/clear-participants', (req, res) => {
     res.status(500).send('Error clearing participant data');
   }
 });
+
 
 app.post('/api/upload-participants', upload.single('file'), (req, res) => {
   if (!req.file) {
@@ -125,6 +167,7 @@ app.post('/api/upload-participants', upload.single('file'), (req, res) => {
     });
   }
 });
+
 
 app.get('/api/export-checkins', (req, res) => {
   try {
@@ -175,9 +218,11 @@ app.get('/api/total-people', (req, res) => {
   res.json({ totalPeople });
 });
 
+
 app.get('/api/daily-check-in-count', (req, res) => {
   res.json({ dailyCheckInCount });
 });
+
 
 app.post('/api/check-in', (req, res) => {
   const { qrData, checkInTime, isDemoMode, activityName } = req.body;
@@ -250,6 +295,26 @@ app.post('/api/check-in', (req, res) => {
       totalPeople: Object.keys(participants).length,
       activityName: activityName
     });
+  }
+});
+
+// Add new endpoints for activity name
+app.get('/api/current-activity', (req, res) => {
+  res.json({ currentActivityName });
+});
+
+app.post('/api/set-current-activity', (req, res) => {
+  const { activityName } = req.body;
+  if (!activityName) {
+    return res.status(400).json({ success: false, message: '活動名稱不能為空' });
+  }
+  try {
+    currentActivityName = activityName;
+    saveActivityName();
+    res.json({ success: true, message: 'Current activity name updated successfully' });
+  } catch (error) {
+    console.error('Error saving activity name:', error);
+    res.status(500).json({ success: false, message: 'Error saving activity name' });
   }
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { QrReader } from 'react-qr-reader';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
@@ -14,10 +14,12 @@ interface Participant {
   signedToday: boolean;
 }
 
+
 // Add this interface for the participants list
 interface ParticipantsList {
   [key: string]: Participant;
 }
+
 
 function formatToHKTime(date: Date): string {
   return date.toLocaleString('en-US', { 
@@ -46,9 +48,8 @@ function App() {
   const [isDemoMode, setIsDemoMode] = useState(true);
   const [showModeSwitch, setShowModeSwitch] = useState(false);
   const [modeSwitchPassword, setModeSwitchPassword] = useState('');
-  const [activityName, setActivityName] = useState('HKACM 二維碼簽到系統');
-  const [currentActivityName, setCurrentActivityName] = useState('');
-  const [pendingActivityName, setPendingActivityName] = useState('');
+  const [currentActivityName, setCurrentActivityName] = useState('HKACM');
+  const [pendingActivityName, setPendingActivityName] = useState('HKACM');
   const [dailyCheckInCount, setDailyCheckInCount] = useState(0);
   const [lastCheckInStatus, setLastCheckInStatus] = useState('');
   const [totalPeople, setTotalPeople] = useState(0);
@@ -56,7 +57,8 @@ function App() {
   // Add this state variable for storing all participants
   const [participants, setParticipants] = useState<ParticipantsList>({});
 
-  const API_URL = 'https://192.168.0.119:3001';
+  // Dynamically construct the API URL based on the current hostname
+  const API_URL = `https://192.168.0.119:3001`;
 
   const [scanning, setScanning] = useState(false);
   const [autoScan, setAutoScan] = useState(false);
@@ -65,6 +67,28 @@ function App() {
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
   const [isCameraAuthorized, setIsCameraAuthorized] = useState(false);
+
+  // Add this constant for the unchangeable system name
+  const SYSTEM_NAME = 'HKACM 二維碼簽到系統';
+
+  // Add these new refs for the audio elements
+  const successAudioRef = useRef<HTMLAudioElement | null>(null);
+  const errorAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Update these state variables to include loading status
+  const [successAudio, setSuccessAudio] = useState<AudioBuffer | null>(null);
+  const [errorAudio, setErrorAudio] = useState<AudioBuffer | null>(null);
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [soundsLoaded, setSoundsLoaded] = useState(false);
+
+  const [lastSoundPlayed, setLastSoundPlayed] = useState<string | null>(null);
+
+  // Add this state to keep track of sound play attempts
+  const [soundPlayAttempts, setSoundPlayAttempts] = useState<string[]>([]);
+
+  // Add new state for participant list authentication
+  const [isParticipantListAuthenticated, setIsParticipantListAuthenticated] = useState(false);
+  const [participantListPassword, setParticipantListPassword] = useState('');
 
   const getCameras = useCallback(async () => {
     try {
@@ -80,6 +104,7 @@ function App() {
     }
   }, [selectedCamera]);
 
+
   useEffect(() => {
     getCameras();
     navigator.mediaDevices.addEventListener('devicechange', getCameras);
@@ -88,6 +113,7 @@ function App() {
     };
   }, [getCameras]);
 
+
   const handleCameraChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newCameraId = event.target.value;
     setSelectedCamera(newCameraId);
@@ -95,6 +121,7 @@ function App() {
     // Optionally, you can restart scanning after a short delay
     // setTimeout(() => setScanning(true), 1000);
   };
+
 
   const fetchParticipants = async () => {
     try {
@@ -110,6 +137,7 @@ function App() {
         const bLatest = b.checkIns && b.checkIns.length > 0 ? new Date(b.checkIns[0]).getTime() : 0;
         return bLatest - aLatest; // Sort in descending order (latest first)
       });
+
 
       const sortedParticipantsObj: ParticipantsList = {};
       sortedParticipants.forEach(p => {
@@ -165,6 +193,68 @@ function App() {
     setManualEntry(event.target.value);
   };
 
+  useEffect(() => {
+    const loadSounds = async () => {
+      try {
+        const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+        setAudioContext(context);
+
+        const loadSound = async (url: string) => {
+          console.log(`Attempting to load sound from: ${url}`);
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const arrayBuffer = await response.arrayBuffer();
+          return await context.decodeAudioData(arrayBuffer);
+        };
+
+        const [success, error] = await Promise.all([
+          loadSound('/sounds/success.mp3'),
+          loadSound('/sounds/error.mp3')
+        ]);
+
+        setSuccessAudio(success);
+        setErrorAudio(error);
+        setSoundsLoaded(true);
+        console.log('Sounds loaded successfully');
+      } catch (error) {
+        console.error('Error loading sounds:', error);
+        setError('無法載入音效檔案。請確保檔案存在且可訪問。');
+      }
+    };
+
+    loadSounds();
+
+    return () => {
+      if (audioContext) {
+        audioContext.close();
+      }
+    };
+  }, []);
+
+  const playSound = useCallback((buffer: AudioBuffer | null, type: 'success' | 'error') => {
+    console.log(`Attempting to play ${type} sound`);
+    setSoundPlayAttempts(prev => [...prev, `Attempted to play ${type} sound at ${new Date().toISOString()}`]);
+    
+    if (audioContext && buffer) {
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioContext.destination);
+      source.start();
+      console.log(`${type} sound played successfully`);
+      setLastSoundPlayed(type);
+    } else {
+      console.log(`Failed to play ${type} sound: ${audioContext ? 'Buffer is null' : 'AudioContext is null'}`);
+      if (!audioContext) {
+        console.error('AudioContext is null. This should not happen after sounds are loaded.');
+      }
+      if (!buffer) {
+        console.error(`${type} sound buffer is null. Check if the sound file was loaded correctly.`);
+      }
+    }
+  }, [audioContext]);
+
   const checkParticipant = useCallback(async (id: string) => {
     console.log('Checking participant with ID:', id);
     setIsLoading(true);
@@ -193,6 +283,7 @@ function App() {
           new Date(checkIn) >= today
         );
 
+
         setParticipant(participantData);
         
         // Update last check-in status with ID and duplicate check info
@@ -203,9 +294,13 @@ function App() {
         setTotalPeople(response.data.totalPeople);
         await fetchParticipants();
         setManualEntry('');
+
+        playSound(successAudio, 'success');
       } else {
         setParticipant(null);
         setLastCheckInStatus(`ID: ${id} - ${response.data.message}`);
+
+        playSound(errorAudio, 'error');
       }
       setError(null);
     } catch (err: unknown) {
@@ -217,13 +312,15 @@ function App() {
       } else {
         setError('發生未知錯誤');
       }
+
+      playSound(errorAudio, 'error');
     } finally {
       setIsLoading(false);
       if (autoScan) {
         setTimeout(() => setScanning(true), 2000);
       }
     }
-  }, [autoScan, currentActivityName, isDemoMode]);
+  }, [autoScan, currentActivityName, isDemoMode, playSound, successAudio, errorAudio]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -249,6 +346,10 @@ function App() {
       await fetchParticipants();
       setTotalPeople(response.data.totalPeople);
       setCurrentActivityName(pendingActivityName);
+      
+      // Add this line to update the activity name on the server
+      await axios.post(`${API_URL}/api/set-current-activity`, { activityName: pendingActivityName });
+      
       setError(null);
       setShowUpdateConfirmation(false);
     } catch (err: unknown) {
@@ -313,7 +414,7 @@ function App() {
       const now = new Date();
       const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
       const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
-      const fileName = `${currentActivityName || 'Unnamed_Activity'}_${activityName}_${dateStr}_${timeStr}.xlsx`;
+      const fileName = `${currentActivityName || 'Unnamed_Activity'}_${SYSTEM_NAME}_${dateStr}_${timeStr}.xlsx`;
       
       saveAs(blob, fileName);
       setError(null);
@@ -361,10 +462,6 @@ function App() {
       setScanning(true);
       setIsPreviewVisible(true);
     }
-  };
-
-  const handleActivityNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setActivityName(event.target.value);
   };
 
   const handleCurrentActivityNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -440,6 +537,22 @@ function App() {
     }
   };
 
+  // Add this function to fetch the current activity name
+  const fetchCurrentActivity = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/current-activity`);
+      const activityName = response.data.currentActivityName || 'HKACM';
+      setCurrentActivityName(activityName);
+      setPendingActivityName(activityName);
+    } catch (error) {
+      console.error('Error fetching current activity:', error);
+      setError('無法獲取當前活動名稱');
+      // Set default name in case of error
+      setCurrentActivityName('HKACM');
+      setPendingActivityName('HKACM');
+    }
+  };
+
   useEffect(() => {
     const fetchInitialData = async () => {
       await fetchTotalPeople();
@@ -458,20 +571,61 @@ function App() {
     return () => clearInterval(intervalId);
   }, []);
 
-  const fetchCurrentActivity = async () => {
+  // Add this function to handle activity name confirmation
+  const handleConfirmActivityName = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/current-activity`);
-      setCurrentActivityName(response.data.currentActivityName);
-      setPendingActivityName(response.data.currentActivityName);
-    } catch (error) {
-      console.error('Error fetching current activity:', error);
+      const response = await axios.post(`${API_URL}/api/set-current-activity`, { activityName: pendingActivityName });
+      if (response.data.success) {
+        setCurrentActivityName(pendingActivityName);
+        setError(null);
+        setUploadStatus('活動名稱更新成功');
+      } else {
+        throw new Error(response.data.message || '更新活動名稱失敗');
+      }
+    } catch (err) {
+      console.error('Error confirming activity name:', err);
+      setError(err instanceof Error ? err.message : '更新活動名稱時發生錯誤');
+      setUploadStatus('');
     }
+  };
+
+  // Add these two functions to manually trigger sounds
+  const playSuccessSound = () => {
+    console.log('Manually triggering success sound');
+    playSound(successAudio, 'success');
+  };
+
+  const playErrorSound = () => {
+    console.log('Manually triggering error sound');
+    playSound(errorAudio, 'error');
+  };
+
+  // Add new function to handle participant list password submission
+  const handleParticipantListPasswordSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (participantListPassword === 'acmlist') {
+      setIsParticipantListAuthenticated(true);
+      setParticipantListPassword('');
+      await fetchParticipants(); // Fetch participants when authenticated
+    } else {
+      setError('參與者列表密碼錯誤');
+    }
+  };
+
+  // Add new function to handle participant list password change
+  const handleParticipantListPasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setParticipantListPassword(event.target.value);
+  };
+
+  // Add new function to lock participant list
+  const handleLockParticipantList = () => {
+    setIsParticipantListAuthenticated(false);
   };
 
   return (
     <div className="App">
       <header className="App-header">
-        <h1>{activityName}</h1>
+        <h1>{SYSTEM_NAME}</h1>
         <h2>{currentActivityName || '未設定當前活動'}</h2>
         <div className="mode-switch">
           <span>目前模式：{isDemoMode ? '演示' : '正式'}</span>
@@ -623,6 +777,76 @@ function App() {
         )}
       </main>
 
+      <section className="participant-list-section">
+        <h2>參與者列表</h2>
+        {!isParticipantListAuthenticated ? (
+          <form onSubmit={handleParticipantListPasswordSubmit} className="login-form">
+            <input
+              type="password"
+              value={participantListPassword}
+              onChange={handleParticipantListPasswordChange}
+              placeholder="輸入參與者列表密碼"
+              className="input-field"
+            />
+            <button type="submit" className="submit-button">查看列表</button>
+          </form>
+        ) : (
+          <div className="participant-list">
+            <div className="section-header">
+              <h3>參與者列表</h3>
+              <button onClick={handleLockParticipantList} className="lock-button">鎖定列表</button>
+            </div>
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>序號</th>
+                    <th>ID</th>
+                    <th>中文姓名</th>
+                    <th>英文姓名</th>
+                    <th>聲部</th>
+                    <th>狀態</th>
+                    <th>今日已簽到</th>
+                    <th>簽到記錄</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.values(participants).map((p: Participant, index: number) => {
+                    // Calculate if signed today
+                    const now = new Date();
+                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    const signedToday = p.checkIns.some(checkIn => 
+                      new Date(checkIn) >= today
+                    );
+
+                    return (
+                      <tr key={p.id}>
+                        <td>{index + 1}</td>
+                        <td>{p.id}</td>
+                        <td>{p.name}</td>
+                        <td>{p.ename}</td>
+                        <td>{p.voice}</td>
+                        <td>{p.isValid ? '有效' : '無效'}</td>
+                        <td>{signedToday ? '是' : '否'}</td>
+                        <td>
+                          {p.checkIns && p.checkIns.length > 0 ? (
+                            <ul className="check-in-list">
+                              {p.checkIns.map((checkIn, index) => (
+                                <li key={index}>{formatToHKTime(new Date(checkIn))}</li>
+                              ))}
+                            </ul>
+                          ) : '未簽到'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
+
       <section className="auth-section">
         <div className="login-container">
           <h2>管理員登入</h2>
@@ -646,18 +870,12 @@ function App() {
               <div className="admin-controls">
                 <input
                   type="text"
-                  value={activityName}
-                  onChange={handleActivityNameChange}
-                  placeholder="輸入系統名稱"
-                  className="input-field"
-                />
-                <input
-                  type="text"
                   value={pendingActivityName}
                   onChange={handleCurrentActivityNameChange}
                   placeholder="輸入當前活動名稱"
                   className="input-field"
                 />
+                <button onClick={handleConfirmActivityName} className="confirm-button">確認活動名稱</button>
                 <input
                   type="file"
                   onChange={handleFileChange}
@@ -668,6 +886,35 @@ function App() {
                 <button onClick={() => setShowClearConfirmation(true)} className="clear-button">清除所有資料</button>
                 <button onClick={handleExportExcel} className="export-button">匯出簽到記錄</button>
                 <button onClick={handleResetDailyCheckInCount} className="reset-button">重置今日總簽到次數</button>
+
+                {/* Add sound test buttons here */}
+                <div className="sound-test-buttons">
+                  <h3>音效測試</h3>
+                  <button onClick={playSuccessSound} className="sound-test-button">
+                    播放成功音效
+                  </button>
+                  <button onClick={playErrorSound} className="sound-test-button">
+                    播放錯誤音效
+                  </button>
+                </div>
+
+                {/* Add sound play attempts here */}
+                <div className="sound-attempts">
+                  <h3>音效播放嘗試:</h3>
+                  <ul>
+                    {soundPlayAttempts.map((attempt, index) => (
+                      <li key={index}>{attempt}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Add sound loading status here */}
+                <div className="sound-status">
+                  <h3>音效載入狀態:</h3>
+                  <p>音效已載入: {soundsLoaded ? '是' : '否'}</p>
+                  <p>成功音效: {successAudio ? '已載入' : '未載入'}</p>
+                  <p>錯誤音效: {errorAudio ? '已載入' : '未載入'}</p>
+                </div>
               </div>
               <p className="upload-status">{uploadStatus}</p>
               {showUpdateConfirmation && (
@@ -699,57 +946,10 @@ function App() {
         </div>
       </section>
 
-      {isAuthenticated && (
-        <section className="participant-table">
-          <h2>參與者列表</h2>
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>序號</th>
-                  <th>ID</th>
-                  <th>中文姓名</th>
-                  <th>英文姓名</th>
-                  <th>聲部</th>
-                  <th>狀態</th>
-                  <th>今日已簽到</th>
-                  <th>簽到記錄</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.values(participants).map((p: Participant, index: number) => {
-                  // Calculate if signed today
-                  const now = new Date();
-                  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                  const signedToday = p.checkIns.some(checkIn => 
-                    new Date(checkIn) >= today
-                  );
-
-                  return (
-                    <tr key={p.id}>
-                      <td>{index + 1}</td>
-                      <td>{p.id}</td>
-                      <td>{p.name}</td>
-                      <td>{p.ename}</td>
-                      <td>{p.voice}</td>
-                      <td>{p.isValid ? '有效' : '無效'}</td>
-                      <td>{signedToday ? '是' : '否'}</td>
-                      <td>
-                        {p.checkIns && p.checkIns.length > 0 ? (
-                          <ul className="check-in-list">
-                            {p.checkIns.map((checkIn, index) => (
-                              <li key={index}>{formatToHKTime(new Date(checkIn))}</li>
-                            ))}
-                          </ul>
-                        ) : '未簽到'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
+      {lastSoundPlayed && (
+        <div className="sound-indicator">
+          最後播放的音效: {lastSoundPlayed === 'success' ? '成功' : '錯誤'}
+        </div>
       )}
     </div>
   );

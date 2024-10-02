@@ -1,1 +1,405 @@
-{}
+{
+  "A001": {
+    "name": "夏瑤",
+    "ename": "XY",
+    "email": "xiaoyao@example.com",
+    "voice": "女低音(Alto)",
+    "isValid": true,
+    "checkIns": [
+      "2024-09-27T02:55:24.723Z"
+    ]
+  },
+  "S001": {
+    "name": "閻曉雲",
+    "ename": "YXY",
+    "email": "yanxiaoyun@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T09:03:19.637Z",
+      "2024-10-02T08:59:30.308Z",
+      "2024-10-02T08:58:19.331Z"
+    ]
+  },
+  "S002": {
+    "name": "鄒志明",
+    "ename": "ZZ",
+    "email": "zhouzhiming@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": [
+      "2024-09-27T02:55:30.103Z",
+      "2024-09-27T02:55:29.075Z",
+      "2024-09-27T02:55:28.561Z"
+    ]
+  },
+  "S003": {
+    "name": "焦俊杰",
+    "ename": "JJ",
+    "email": "jiaojunjie@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": [
+      "2024-09-27T02:55:35.246Z"
+    ]
+  },
+  "T001": {
+    "name": "邢美華",
+    "ename": "XMH",
+    "email": "xingmeihua@example.com",
+    "voice": "男高音(Tenor)",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T08:57:28.635Z",
+      "2024-09-27T02:55:37.295Z"
+    ]
+  },
+  "S004": {
+    "name": "龔佳慧",
+    "ename": "GJH",
+    "email": "gongjihui@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T08:57:46.224Z",
+      "2024-09-27T02:55:40.879Z"
+    ]
+  },
+  "由001": {
+    "name": "樊夢瑤",
+    "ename": "FMY",
+    "email": "fanmengyao@example.com",
+    "voice": "不清楚,由大會安排",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T08:11:32.598Z"
+    ]
+  },
+  "S005": {
+    "name": "殷文博",
+    "ename": "YWB",
+    "email": "yinwenbo@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T09:00:34.320Z",
+      "2024-10-02T08:11:36.275Z",
+      "2024-09-27T02:55:50.157Z"
+    ]
+  },
+  "由002": {
+    "name": "費欣怡",
+    "ename": "FYI",
+    "email": "fei-xinyi@example.com",
+    "voice": "不清楚,由大會安排",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T09:28:30.831Z",
+      "2024-10-02T09:28:23.056Z",
+      "2024-09-27T02:55:49.131Z"
+    ]
+  },
+  "T002": {
+    "name": "蔣旭陽",
+    "ename": "JXY",
+    "email": "jiangxuyang@example.com",
+    "voice": "男高音(Tenor)",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T09:05:21.173Z",
+      "2024-10-02T09:05:20.655Z",
+      "2024-09-27T02:55:48.089Z",
+      "2024-09-27T02:55:47.566Z"
+    ]
+  },
+  "由003": {
+    "name": "倪子豪",
+    "ename": "NZH",
+    "email": "nizihao@example.com",
+    "voice": "不清楚,由大會安排",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T09:05:22.709Z",
+      "2024-09-27T02:55:46.528Z",
+      "2024-09-27T02:55:44.987Z"
+    ]
+  },
+  "S006": {
+    "name": "譚雅莉",
+    "ename": "TYL",
+    "email": "tanyali@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T09:05:36.445Z",
+      "2024-10-02T09:05:35.426Z",
+      "2024-09-27T02:55:42.434Z"
+    ]
+  },
+  "T003": {
+    "name": "邵靜雯",
+    "ename": "SJW",
+    "email": "shaojingwen@example.com",
+    "voice": "男高音(Tenor)",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T08:11:31.552Z"
+    ]
+  },
+  "A002": {
+    "name": "萬美玲",
+    "ename": "WML",
+    "email": "wanmeiling@example.com",
+    "voice": "女低音(Alto)",
+    "isValid": true,
+    "checkIns": [
+      "2024-09-27T02:55:51.200Z"
+    ]
+  },
+  "S007": {
+    "name": "鄭瑞雪",
+    "ename": "ZRX",
+    "email": "zhengruixue@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": [
+      "2024-09-27T02:55:54.307Z"
+    ]
+  },
+  "T004": {
+    "name": "錢文慧",
+    "ename": "QWH",
+    "email": "qianwenhui@example.com",
+    "voice": "男高音(Tenor)",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T08:59:49.179Z",
+      "2024-09-27T02:55:55.344Z"
+    ]
+  },
+  "由004": {
+    "name": "彭俊偉",
+    "ename": "PJW",
+    "email": "pengjunwei@example.com",
+    "voice": "不清楚,由大會安排",
+    "isValid": true,
+    "checkIns": [
+      "2024-09-27T02:56:00.494Z"
+    ]
+  },
+  "S008": {
+    "name": "杜夢婷",
+    "ename": "DMT",
+    "email": "dumengting@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": []
+  },
+  "由005": {
+    "name": "侯子涵",
+    "ename": "HZH",
+    "email": "houzihan@example.com",
+    "voice": "不清楚,由大會安排",
+    "isValid": true,
+    "checkIns": []
+  },
+  "S009": {
+    "name": "吳子辰",
+    "ename": "WZC",
+    "email": "wuzichen@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": []
+  },
+  "S010": {
+    "name": "龐志強",
+    "ename": "PZQ",
+    "email": "pangzhqiang@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": []
+  },
+  "T005": {
+    "name": "殷怡君",
+    "ename": "YJY",
+    "email": "yinjun@example.com",
+    "voice": "男高音(Tenor)",
+    "isValid": true,
+    "checkIns": []
+  },
+  "T006": {
+    "name": "邵志豪",
+    "ename": "SZH",
+    "email": "shaozhihao@example.com",
+    "voice": "男高音(Tenor)",
+    "isValid": true,
+    "checkIns": []
+  },
+  "A003": {
+    "name": "段雅婷",
+    "ename": "DYT",
+    "email": "duanyating@example.com",
+    "voice": "女低音(Alto)",
+    "isValid": true,
+    "checkIns": []
+  },
+  "由006": {
+    "name": "戚文傑",
+    "ename": "QWJ",
+    "email": "qiwenjie@example.com",
+    "voice": "不清楚,由大會安排",
+    "isValid": true,
+    "checkIns": []
+  },
+  "S011": {
+    "name": "熊俊宏",
+    "ename": "XJH",
+    "email": "xiongjunhong@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": []
+  },
+  "由007": {
+    "name": "阮佳音",
+    "ename": "RJY",
+    "email": "ruanjiayin@example.com",
+    "voice": "不清楚,由大會安排",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T06:23:47.487Z"
+    ]
+  },
+  "由008": {
+    "name": "黎明慧",
+    "ename": "LMH",
+    "email": "liminghui@example.com",
+    "voice": "不清楚,由大會安排",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T06:23:54.832Z",
+      "2024-10-02T06:23:54.308Z",
+      "2024-10-02T06:23:53.785Z",
+      "2024-10-02T06:23:53.265Z",
+      "2024-10-02T06:23:52.745Z"
+    ]
+  },
+  "由009": {
+    "name": "白雪梅",
+    "ename": "BXM",
+    "email": "baixuemei@example.com",
+    "voice": "不清楚,由大會安排",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T06:23:56.886Z"
+    ]
+  },
+  "A004": {
+    "name": "賈宇航",
+    "ename": "JYH",
+    "email": "jiayuhang@example.com",
+    "voice": "女低音(Alto)",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T06:23:59.466Z"
+    ]
+  },
+  "由010": {
+    "name": "費文彬",
+    "ename": "FWB",
+    "email": "feiwenbin@example.com",
+    "voice": "不清楚,由大會安排",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T08:11:00.009Z"
+    ]
+  },
+  "B001": {
+    "name": "林紫璇",
+    "ename": "LZX",
+    "email": "linziquan@example.com",
+    "voice": "男低音(Bass)",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T08:10:45.663Z"
+    ]
+  },
+  "S012": {
+    "name": "蔣晨曦",
+    "ename": "JCX",
+    "email": "jiangchenxi@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T08:10:15.901Z"
+    ]
+  },
+  "由011": {
+    "name": "洪雅婷",
+    "ename": "HYT",
+    "email": "hongyating@example.com",
+    "voice": "不清楚,由大會安排",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T06:24:13.483Z",
+      "2024-10-02T06:24:10.908Z"
+    ]
+  },
+  "B002": {
+    "name": "華子豪",
+    "ename": "HZH",
+    "email": "huazihao@example.com",
+    "voice": "男低音(Bass)",
+    "isValid": true,
+    "checkIns": [
+      "2024-10-02T06:24:03.112Z"
+    ]
+  },
+  "B003": {
+    "name": "包夢琪",
+    "ename": "BMQ",
+    "email": "baomengqi@example.com",
+    "voice": "男低音(Bass)",
+    "isValid": true,
+    "checkIns": []
+  },
+  "T007": {
+    "name": "喻天佑",
+    "ename": "YTY",
+    "email": "yutianyou@example.com",
+    "voice": "男高音(Tenor)",
+    "isValid": true,
+    "checkIns": []
+  },
+  "由012": {
+    "name": "儲佳琪",
+    "ename": "CJQ",
+    "email": "chujiaqi@example.com",
+    "voice": "不清楚,由大會安排",
+    "isValid": true,
+    "checkIns": []
+  },
+  "S013": {
+    "name": "紀建華",
+    "ename": "JJH",
+    "email": "jijianhua@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": []
+  },
+  "S014": {
+    "name": "尹志豪",
+    "ename": "YZH",
+    "email": "yinzhihao@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": []
+  },
+  "S015": {
+    "name": "魏雅婷",
+    "ename": "WYT",
+    "email": "weiyating@example.com",
+    "voice": "女高音(Soprano)",
+    "isValid": true,
+    "checkIns": []
+  }
+}
