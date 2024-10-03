@@ -5,9 +5,7 @@
     "email": "xiaoyao@example.com",
     "voice": "女低音(Alto)",
     "isValid": true,
-    "checkIns": [
-      "2024-09-27T02:55:24.723Z"
-    ]
+    "checkIns": []
   },
   "S001": {
     "name": "閻曉雲",
@@ -16,9 +14,13 @@
     "voice": "女高音(Soprano)",
     "isValid": true,
     "checkIns": [
-      "2024-10-02T09:03:19.637Z",
-      "2024-10-02T08:59:30.308Z",
-      "2024-10-02T08:58:19.331Z"
+      "2024-10-03T11:53:18.985Z",
+      "2024-10-03T11:43:04.385Z",
+      "2024-10-03T11:36:48.645Z",
+      "2024-10-03T11:34:33.936Z",
+      "2024-10-03T11:34:22.782Z",
+      "2024-10-03T11:30:53.938Z",
+      "2024-10-03T11:29:36.245Z"
     ]
   },
   "S002": {
@@ -27,11 +29,7 @@
     "email": "zhouzhiming@example.com",
     "voice": "女高音(Soprano)",
     "isValid": true,
-    "checkIns": [
-      "2024-09-27T02:55:30.103Z",
-      "2024-09-27T02:55:29.075Z",
-      "2024-09-27T02:55:28.561Z"
-    ]
+    "checkIns": []
   },
   "S003": {
     "name": "焦俊杰",
@@ -40,7 +38,7 @@
     "voice": "女高音(Soprano)",
     "isValid": true,
     "checkIns": [
-      "2024-09-27T02:55:35.246Z"
+      "2024-10-03T11:08:11.530Z"
     ]
   },
   "T001": {
@@ -50,8 +48,8 @@
     "voice": "男高音(Tenor)",
     "isValid": true,
     "checkIns": [
-      "2024-10-02T08:57:28.635Z",
-      "2024-09-27T02:55:37.295Z"
+      "2024-10-03T11:34:24.468Z",
+      "2024-10-03T11:30:56.297Z"
     ]
   },
   "S004": {
@@ -60,10 +58,7 @@
     "email": "gongjihui@example.com",
     "voice": "女高音(Soprano)",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T08:57:46.224Z",
-      "2024-09-27T02:55:40.879Z"
-    ]
+    "checkIns": []
   },
   "由001": {
     "name": "樊夢瑤",
@@ -71,9 +66,7 @@
     "email": "fanmengyao@example.com",
     "voice": "不清楚,由大會安排",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T08:11:32.598Z"
-    ]
+    "checkIns": []
   },
   "S005": {
     "name": "殷文博",
@@ -82,9 +75,8 @@
     "voice": "女高音(Soprano)",
     "isValid": true,
     "checkIns": [
-      "2024-10-02T09:00:34.320Z",
-      "2024-10-02T08:11:36.275Z",
-      "2024-09-27T02:55:50.157Z"
+      "2024-10-03T11:22:51.659Z",
+      "2024-10-03T11:21:46.138Z"
     ]
   },
   "由002": {
@@ -93,11 +85,7 @@
     "email": "fei-xinyi@example.com",
     "voice": "不清楚,由大會安排",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T09:28:30.831Z",
-      "2024-10-02T09:28:23.056Z",
-      "2024-09-27T02:55:49.131Z"
-    ]
+    "checkIns": []
   },
   "T002": {
     "name": "蔣旭陽",
@@ -105,12 +93,7 @@
     "email": "jiangxuyang@example.com",
     "voice": "男高音(Tenor)",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T09:05:21.173Z",
-      "2024-10-02T09:05:20.655Z",
-      "2024-09-27T02:55:48.089Z",
-      "2024-09-27T02:55:47.566Z"
-    ]
+    "checkIns": []
   },
   "由003": {
     "name": "倪子豪",
@@ -118,11 +101,7 @@
     "email": "nizihao@example.com",
     "voice": "不清楚,由大會安排",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T09:05:22.709Z",
-      "2024-09-27T02:55:46.528Z",
-      "2024-09-27T02:55:44.987Z"
-    ]
+    "checkIns": []
   },
   "S006": {
     "name": "譚雅莉",
@@ -130,11 +109,7 @@
     "email": "tanyali@example.com",
     "voice": "女高音(Soprano)",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T09:05:36.445Z",
-      "2024-10-02T09:05:35.426Z",
-      "2024-09-27T02:55:42.434Z"
-    ]
+    "checkIns": []
   },
   "T003": {
     "name": "邵靜雯",
@@ -143,7 +118,8 @@
     "voice": "男高音(Tenor)",
     "isValid": true,
     "checkIns": [
-      "2024-10-02T08:11:31.552Z"
+      "2024-10-03T11:23:06.546Z",
+      "2024-10-03T11:21:37.531Z"
     ]
   },
   "A002": {
@@ -153,7 +129,7 @@
     "voice": "女低音(Alto)",
     "isValid": true,
     "checkIns": [
-      "2024-09-27T02:55:51.200Z"
+      "2024-10-03T11:22:56.481Z"
     ]
   },
   "S007": {
@@ -162,9 +138,7 @@
     "email": "zhengruixue@example.com",
     "voice": "女高音(Soprano)",
     "isValid": true,
-    "checkIns": [
-      "2024-09-27T02:55:54.307Z"
-    ]
+    "checkIns": []
   },
   "T004": {
     "name": "錢文慧",
@@ -172,10 +146,7 @@
     "email": "qianwenhui@example.com",
     "voice": "男高音(Tenor)",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T08:59:49.179Z",
-      "2024-09-27T02:55:55.344Z"
-    ]
+    "checkIns": []
   },
   "由004": {
     "name": "彭俊偉",
@@ -183,9 +154,7 @@
     "email": "pengjunwei@example.com",
     "voice": "不清楚,由大會安排",
     "isValid": true,
-    "checkIns": [
-      "2024-09-27T02:56:00.494Z"
-    ]
+    "checkIns": []
   },
   "S008": {
     "name": "杜夢婷",
@@ -225,7 +194,9 @@
     "email": "yinjun@example.com",
     "voice": "男高音(Tenor)",
     "isValid": true,
-    "checkIns": []
+    "checkIns": [
+      "2024-10-03T11:31:03.062Z"
+    ]
   },
   "T006": {
     "name": "邵志豪",
@@ -241,7 +212,12 @@
     "email": "duanyating@example.com",
     "voice": "女低音(Alto)",
     "isValid": true,
-    "checkIns": []
+    "checkIns": [
+      "2024-10-03T11:24:50.489Z",
+      "2024-10-03T11:24:04.553Z",
+      "2024-10-03T11:21:02.821Z",
+      "2024-10-03T11:18:42.063Z"
+    ]
   },
   "由006": {
     "name": "戚文傑",
@@ -265,9 +241,7 @@
     "email": "ruanjiayin@example.com",
     "voice": "不清楚,由大會安排",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T06:23:47.487Z"
-    ]
+    "checkIns": []
   },
   "由008": {
     "name": "黎明慧",
@@ -275,13 +249,7 @@
     "email": "liminghui@example.com",
     "voice": "不清楚,由大會安排",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T06:23:54.832Z",
-      "2024-10-02T06:23:54.308Z",
-      "2024-10-02T06:23:53.785Z",
-      "2024-10-02T06:23:53.265Z",
-      "2024-10-02T06:23:52.745Z"
-    ]
+    "checkIns": []
   },
   "由009": {
     "name": "白雪梅",
@@ -289,9 +257,7 @@
     "email": "baixuemei@example.com",
     "voice": "不清楚,由大會安排",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T06:23:56.886Z"
-    ]
+    "checkIns": []
   },
   "A004": {
     "name": "賈宇航",
@@ -299,9 +265,7 @@
     "email": "jiayuhang@example.com",
     "voice": "女低音(Alto)",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T06:23:59.466Z"
-    ]
+    "checkIns": []
   },
   "由010": {
     "name": "費文彬",
@@ -309,9 +273,7 @@
     "email": "feiwenbin@example.com",
     "voice": "不清楚,由大會安排",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T08:11:00.009Z"
-    ]
+    "checkIns": []
   },
   "B001": {
     "name": "林紫璇",
@@ -319,9 +281,7 @@
     "email": "linziquan@example.com",
     "voice": "男低音(Bass)",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T08:10:45.663Z"
-    ]
+    "checkIns": []
   },
   "S012": {
     "name": "蔣晨曦",
@@ -329,9 +289,7 @@
     "email": "jiangchenxi@example.com",
     "voice": "女高音(Soprano)",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T08:10:15.901Z"
-    ]
+    "checkIns": []
   },
   "由011": {
     "name": "洪雅婷",
@@ -339,10 +297,7 @@
     "email": "hongyating@example.com",
     "voice": "不清楚,由大會安排",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T06:24:13.483Z",
-      "2024-10-02T06:24:10.908Z"
-    ]
+    "checkIns": []
   },
   "B002": {
     "name": "華子豪",
@@ -350,9 +305,7 @@
     "email": "huazihao@example.com",
     "voice": "男低音(Bass)",
     "isValid": true,
-    "checkIns": [
-      "2024-10-02T06:24:03.112Z"
-    ]
+    "checkIns": []
   },
   "B003": {
     "name": "包夢琪",
@@ -360,7 +313,10 @@
     "email": "baomengqi@example.com",
     "voice": "男低音(Bass)",
     "isValid": true,
-    "checkIns": []
+    "checkIns": [
+      "2024-10-03T11:55:03.284Z",
+      "2024-10-03T11:22:45.892Z"
+    ]
   },
   "T007": {
     "name": "喻天佑",
@@ -368,7 +324,10 @@
     "email": "yutianyou@example.com",
     "voice": "男高音(Tenor)",
     "isValid": true,
-    "checkIns": []
+    "checkIns": [
+      "2024-10-03T11:23:09.826Z",
+      "2024-10-03T11:21:32.689Z"
+    ]
   },
   "由012": {
     "name": "儲佳琪",
@@ -376,7 +335,18 @@
     "email": "chujiaqi@example.com",
     "voice": "不清楚,由大會安排",
     "isValid": true,
-    "checkIns": []
+    "checkIns": [
+      "2024-10-03T11:31:38.288Z",
+      "2024-10-03T11:30:49.728Z",
+      "2024-10-03T11:22:42.824Z",
+      "2024-10-03T11:22:22.263Z",
+      "2024-10-03T11:20:59.133Z",
+      "2024-10-03T11:20:57.121Z",
+      "2024-10-03T11:20:55.115Z",
+      "2024-10-03T11:20:53.098Z",
+      "2024-10-03T11:20:51.082Z",
+      "2024-10-03T11:20:49.067Z"
+    ]
   },
   "S013": {
     "name": "紀建華",
@@ -400,6 +370,8 @@
     "email": "weiyating@example.com",
     "voice": "女高音(Soprano)",
     "isValid": true,
-    "checkIns": []
+    "checkIns": [
+      "2024-10-03T11:22:38.564Z"
+    ]
   }
 }

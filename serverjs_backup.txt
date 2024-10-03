@@ -339,31 +339,6 @@ app.get('/api/scan-entries', (req, res) => {
   res.json(scanEntries);
 });
 
-app.post('/api/reset-daily-check-in-count', (req, res) => {
-  try {
-    dailyCheckInCount = 0;
-    res.json({ success: true, message: '今日總簽到次數已重置', dailyCheckInCount: 0 });
-  } catch (error) {
-    console.error('Error resetting daily check-in count:', error);
-    res.status(500).json({ success: false, message: '重置今日總簽到次數時發生錯誤' });
-  }
-});
-
-// Add this new endpoint
-app.post('/api/clear-check-in-records', (req, res) => {
-  try {
-    Object.values(participants).forEach(participant => {
-      participant.checkIns = [];
-    });
-    saveParticipantsData();
-    dailyCheckInCount = 0; // Reset daily check-in count as well
-    res.json({ success: true, message: 'All check-in records cleared successfully' });
-  } catch (error) {
-    console.error('Error clearing check-in records:', error);
-    res.status(500).json({ success: false, message: 'Error clearing check-in records' });
-  }
-});
-
 const options = {
   key: fs.readFileSync('key.pem'),
   cert: fs.readFileSync('cert.pem')

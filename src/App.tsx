@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { QrReader } from 'react-qr-reader';
+import QrScanner from 'react-qr-scanner';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
 import './App.css';
@@ -14,12 +14,21 @@ interface Participant {
   signedToday: boolean;
 }
 
-
+//test new commit
 // Add this interface for the participants list
 interface ParticipantsList {
   [key: string]: Participant;
 }
 
+// Define a constant for the base URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || window.location.origin;
+// Add this interface for scan entries
+interface ScanEntry {
+  id: string;
+  time: string;
+  name: string;
+  status: string;
+}
 
 function formatToHKTime(date: Date): string {
   return date.toLocaleString('en-US', { 
@@ -58,7 +67,7 @@ function App() {
   const [participants, setParticipants] = useState<ParticipantsList>({});
 
   // Dynamically construct the API URL based on the current hostname
-  const API_URL = `https://192.168.0.119:3001`;
+  const API_URL = `${API_BASE_URL}/api`;
 
   const [scanning, setScanning] = useState(false);
   const [autoScan, setAutoScan] = useState(false);
@@ -89,6 +98,28 @@ function App() {
   // Add new state for participant list authentication
   const [isParticipantListAuthenticated, setIsParticipantListAuthenticated] = useState(false);
   const [participantListPassword, setParticipantListPassword] = useState('');
+
+  // Add this state for scan entries
+  const [scanEntries, setScanEntries] = useState<ScanEntry[]>([]);
+
+  // Add this new state for the last played sound
+  const [lastPlayedSound, setLastPlayedSound] = useState<string | null>(null);
+
+  // Add this state variable at the top of your component
+  const [lastScanTime, setLastScanTime] = useState<number>(0);
+
+  const [showClearCheckInConfirmation, setShowClearCheckInConfirmation] = useState(false);
+
+  // Add this to your state declarations
+  const [isClearingCheckIns, setIsClearingCheckIns] = useState(false);
+
+  // Add these new state variables
+  const [isScanListAuthenticated, setIsScanListAuthenticated] = useState(false);
+  const [scanListPassword, setScanListPassword] = useState('');
+
+  const [activeTab, setActiveTab] = useState<'participants' | 'scanRecords' | 'admin'>('participants');
+
+  const [volume, setVolume] = useState(1); // 1 is max volume, 0 is muted
 
   const getCameras = useCallback(async () => {
     try {
@@ -125,7 +156,7 @@ function App() {
 
   const fetchParticipants = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/participants`);
+      const response = await axios.get(`${API_URL}/participants`);
       const participantsData: ParticipantsList = {};
       response.data.forEach((p: Participant) => {
         participantsData[p.id] = p;
@@ -154,7 +185,7 @@ function App() {
 
   const fetchParticipantsOnLogin = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/participants`);
+      const response = await axios.get(`${API_URL}/participants`);
       const participantsData: ParticipantsList = {};
       response.data.forEach((p: Participant) => {
         participantsData[p.id] = p;
@@ -239,11 +270,19 @@ function App() {
     
     if (audioContext && buffer) {
       const source = audioContext.createBufferSource();
+      const gainNode = audioContext.createGain();
+      
       source.buffer = buffer;
-      source.connect(audioContext.destination);
+      source.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Set the volume
+      gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+      
       source.start();
       console.log(`${type} sound played successfully`);
       setLastSoundPlayed(type);
+      setLastPlayedSound(type);
     } else {
       console.log(`Failed to play ${type} sound: ${audioContext ? 'Buffer is null' : 'AudioContext is null'}`);
       if (!audioContext) {
@@ -253,7 +292,7 @@ function App() {
         console.error(`${type} sound buffer is null. Check if the sound file was loaded correctly.`);
       }
     }
-  }, [audioContext]);
+  }, [audioContext, volume]);
 
   const checkParticipant = useCallback(async (id: string) => {
     console.log('Checking participant with ID:', id);
@@ -261,7 +300,7 @@ function App() {
     try {
       const checkInTime = new Date().toISOString();
       console.log('Sending check-in request to server...');
-      const response = await axios.post(`${API_URL}/api/check-in`, {
+      const response = await axios.post(`${API_URL}/check-in`, {
         qrData: id,
         checkInTime: checkInTime,
         isDemoMode: isDemoMode,
@@ -320,7 +359,7 @@ function App() {
         setTimeout(() => setScanning(true), 2000);
       }
     }
-  }, [autoScan, currentActivityName, isDemoMode, playSound, successAudio, errorAudio]);
+  }, [autoScan, currentActivityName, isDemoMode, playSound, successAudio, errorAudio, API_URL]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -339,7 +378,7 @@ function App() {
     formData.append('activityName', pendingActivityName);
 
     try {
-      const response = await axios.post(`${API_URL}/api/upload-participants`, formData, {
+      const response = await axios.post(`${API_URL}/upload-participants`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setUploadStatus('參與者資料更新成功');
@@ -348,7 +387,7 @@ function App() {
       setCurrentActivityName(pendingActivityName);
       
       // Add this line to update the activity name on the server
-      await axios.post(`${API_URL}/api/set-current-activity`, { activityName: pendingActivityName });
+      await axios.post(`${API_URL}/set-current-activity`, { activityName: pendingActivityName });
       
       setError(null);
       setShowUpdateConfirmation(false);
@@ -365,7 +404,7 @@ function App() {
 
   const handleClearData = async () => {
     try {
-      const response = await axios.post(`${API_URL}/api/clear-participants`);
+      const response = await axios.post(`${API_URL}/clear-participants`);
       setUploadStatus('所有參與者資料已成功清除');
       setParticipant(null);
       setError(null);
@@ -386,8 +425,9 @@ function App() {
     event.preventDefault();
     if (password === 'hkacmadmin') {
       setIsAuthenticated(true);
-      await fetchParticipantsOnLogin(); // Fetch participants data on successful login
-      await fetchTotalPeople(); // Fetch total number of people
+      await fetchParticipantsOnLogin();
+      await fetchTotalPeople();
+      await refreshScanEntries(); // Add this line
     } else {
       setError('密碼錯誤');
     }
@@ -405,7 +445,7 @@ function App() {
 
   const handleExportExcel = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/export-checkins`, {
+      const response = await axios.get(`${API_URL}/export-checkins`, {
         responseType: 'blob',
       });
       const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -437,7 +477,7 @@ function App() {
     if (modeSwitchPassword === 'hkacmadmin') {
       try {
         const newMode = !isDemoMode;
-        const response = await axios.post(`${API_URL}/api/set-demo-mode`, { isDemoMode: newMode });
+        const response = await axios.post(`${API_URL}/set-demo-mode`, { isDemoMode: newMode });
         if (response.data.success) {
           setIsDemoMode(newMode);
           setShowModeSwitch(false);
@@ -470,7 +510,7 @@ function App() {
 
   const fetchTotalPeople = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/total-people`);
+      const response = await axios.get(`${API_URL}/total-people`);
       setTotalPeople(response.data.totalPeople);
     } catch (error) {
       console.error('Error fetching total number of people:', error);
@@ -487,17 +527,23 @@ function App() {
     }
   };
 
-  const handleScan = useCallback((result: any) => {
-    if (result) {
-      const scannedText = result.getText();
-      console.log('Scan result:', scannedText);
-      checkParticipant(scannedText);
-      if (!autoScan) {
-        setScanning(false);
-        setIsPreviewVisible(false);
+  const handleScan = useCallback((data: any) => {
+    const currentTime = Date.now();
+    if (data && currentTime - lastScanTime > 2000) { // 2000 milliseconds = 2 seconds
+      console.log('Scan result:', data);
+      // Extract the text from the scanned data object
+      const scannedText = data.text || '';
+      console.log('Extracted text:', scannedText);
+      if (scannedText) {
+        checkParticipant(scannedText);
+        setLastScanTime(currentTime);
+        if (!autoScan) {
+          setScanning(false);
+          setIsPreviewVisible(false);
+        }
       }
     }
-  }, [autoScan, checkParticipant]);
+  }, [autoScan, checkParticipant, lastScanTime]);
 
   const handleCameraAuthorization = async () => {
     try {
@@ -514,7 +560,7 @@ function App() {
 
   const fetchDailyCheckInCount = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/daily-check-in-count`);
+      const response = await axios.get(`${API_URL}/daily-check-in-count`);
       setDailyCheckInCount(response.data.dailyCheckInCount);
     } catch (error) {
       console.error('Error fetching daily check-in count:', error);
@@ -524,23 +570,24 @@ function App() {
 
   const handleResetDailyCheckInCount = async () => {
     try {
-      const response = await axios.post(`${API_URL}/api/reset-daily-check-in-count`);
+      const response = await axios.post(`${API_URL}/reset-daily-check-in-count`);
       if (response.data.success) {
-        setDailyCheckInCount(0);
+        setDailyCheckInCount(response.data.dailyCheckInCount);
         setLastCheckInStatus('今日總簽到次數已重置');
+        setError(null); // Clear any previous errors
       } else {
         setError('重置今日總簽到次數失敗');
       }
     } catch (err) {
-      setError('重置今日總簽到次數時發生錯誤');
       console.error('Error resetting daily check-in count:', err);
+      setError('重置今日總簽到次數時發生錯誤');
     }
   };
 
   // Add this function to fetch the current activity name
   const fetchCurrentActivity = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/current-activity`);
+      const response = await axios.get(`${API_URL}/current-activity`);
       const activityName = response.data.currentActivityName || 'HKACM';
       setCurrentActivityName(activityName);
       setPendingActivityName(activityName);
@@ -553,19 +600,43 @@ function App() {
     }
   };
 
+  // Add this function to fetch scan entries
+  const fetchScanEntries = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/scan-entries`);
+      setScanEntries(response.data);
+    } catch (error) {
+      console.error('Error fetching scan entries:', error);
+      setError('無法獲取掃描記錄');
+    }
+  };
+
+  // Add this function to refresh scan entries
+  const refreshScanEntries = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API_URL}/scan-entries`);
+      setScanEntries(response.data);
+    } catch (error) {
+      console.error('Error fetching scan entries:', error);
+      setError('無法獲取掃描記錄');
+    }
+  }, [API_URL]);
+
   useEffect(() => {
     const fetchInitialData = async () => {
       await fetchTotalPeople();
       await fetchDailyCheckInCount();
       await fetchCurrentActivity();
+      await fetchScanEntries(); // Add this line
     };
 
     fetchInitialData();
 
-    // Fetch total people and daily check-in count every 5 minutes
+    // Fetch data every 5 minutes
     const intervalId = setInterval(() => {
       fetchTotalPeople();
       fetchDailyCheckInCount();
+      fetchScanEntries(); // Add this line
     }, 5 * 60 * 1000);
 
     return () => clearInterval(intervalId);
@@ -574,7 +645,7 @@ function App() {
   // Add this function to handle activity name confirmation
   const handleConfirmActivityName = async () => {
     try {
-      const response = await axios.post(`${API_URL}/api/set-current-activity`, { activityName: pendingActivityName });
+      const response = await axios.post(`${API_URL}/set-current-activity`, { activityName: pendingActivityName });
       if (response.data.success) {
         setCurrentActivityName(pendingActivityName);
         setError(null);
@@ -620,6 +691,60 @@ function App() {
   // Add new function to lock participant list
   const handleLockParticipantList = () => {
     setIsParticipantListAuthenticated(false);
+  };
+
+  // Add an error handling function for the QR scanner
+  const handleError = (err: any) => {
+    console.error(err);
+    setError('QR掃描錯誤：' + err.message);
+  };
+
+  // Add this new function to handle clearing check-in records
+  const handleClearCheckInRecords = async () => {
+    setIsClearingCheckIns(true);
+    try {
+      const response = await axios.post(`${API_URL}/clear-check-in-records`);
+      if (response.data.success) {
+        setUploadStatus('所有簽到記錄已成功清除');
+        await fetchParticipants(); // Refresh the participant list
+        setError(null);
+        setShowClearCheckInConfirmation(false); // Close the pop-up
+      } else {
+        setError('清除簽到記錄失敗');
+      }
+    } catch (err) {
+      console.error('Error clearing check-in records:', err);
+      setError('清除簽到記錄時發生錯誤');
+    } finally {
+      setIsClearingCheckIns(false);
+    }
+  };
+
+  // Add this new function to handle scan list password submission
+  const handleScanListPasswordSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (scanListPassword === 'scanlist') {
+      setIsScanListAuthenticated(true);
+      setScanListPassword('');
+      await refreshScanEntries(); // Refresh scan entries when authenticated
+    } else {
+      setError('掃描記錄密碼錯誤');
+    }
+  };
+
+  // Add this new function to handle scan list password change
+  const handleScanListPasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setScanListPassword(event.target.value);
+  };
+
+  // Add this new function to lock scan list
+  const handleLockScanList = () => {
+    setIsScanListAuthenticated(false);
+  };
+
+  const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(event.target.value);
+    setVolume(newVolume);
   };
 
   return (
@@ -690,13 +815,17 @@ function App() {
             
             <div className="scanner-container" style={{ width: '100%', maxWidth: '600px', margin: '0 auto' }}>
               {isPreviewVisible && (
-                <QrReader
-                  key={selectedCamera}
-                  onResult={handleScan}
-                  constraints={{ deviceId: selectedCamera || undefined, facingMode: 'environment' }}
-                  videoStyle={{ width: '100%', height: 'auto', maxHeight: '80vh' }}
-                  containerStyle={{ width: '100%', height: 'auto' }}
-                  videoContainerStyle={{ width: '100%', height: 'auto', paddingTop: '75%', position: 'relative' }}
+                <QrScanner
+                  delay={300}
+                  onError={handleError}
+                  onScan={handleScan}
+                  constraints={{ 
+                    video: { 
+                      facingMode: "environment",
+                      deviceId: selectedCamera || undefined
+                    } 
+                  }}
+                  style={{ width: '100%', maxWidth: '600px' }}
                 />
               )}
             </div>
@@ -704,20 +833,22 @@ function App() {
               <button onClick={handleCameraAuthorization} className="authorize-camera-button">
                 授權攝像頭
               </button>
-              <button 
-                onClick={toggleScanning} 
-                className={scanning ? "stop-scan-button" : "scan-button"}
-                disabled={!isCameraAuthorized}
-              >
-                {scanning ? '停止掃描' : '開始掃描'}
-              </button>
-              <button 
-                onClick={toggleAutoScan} 
-                className={`auto-scan-button ${autoScan ? 'active' : ''}`}
-                disabled={!isCameraAuthorized}
-              >
-                {autoScan ? '關閉自動掃描' : '開啟自動掃描'}
-              </button>
+              <div className="scan-buttons">
+                <button 
+                  onClick={toggleScanning} 
+                  className={scanning ? "stop-scan-button" : "scan-button"}
+                  disabled={!isCameraAuthorized}
+                >
+                  {scanning ? '停止掃描' : '開始掃描'}
+                </button>
+                <button 
+                  onClick={toggleAutoScan} 
+                  className={`auto-scan-button ${autoScan ? 'active' : ''}`}
+                  disabled={!isCameraAuthorized}
+                >
+                  {autoScan ? '關閉自動掃描' : '開啟自動掃描'}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -775,182 +906,298 @@ function App() {
             )}
           </section>
         )}
-      </main>
 
-      <section className="participant-list-section">
-        <h2>參與者列表</h2>
-        {!isParticipantListAuthenticated ? (
-          <form onSubmit={handleParticipantListPasswordSubmit} className="login-form">
-            <input
-              type="password"
-              value={participantListPassword}
-              onChange={handleParticipantListPasswordChange}
-              placeholder="輸入參與者列表密碼"
-              className="input-field"
-            />
-            <button type="submit" className="submit-button">查看列表</button>
-          </form>
-        ) : (
-          <div className="participant-list">
-            <div className="section-header">
-              <h3>參與者列表</h3>
-              <button onClick={handleLockParticipantList} className="lock-button">鎖定列表</button>
-            </div>
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>序號</th>
-                    <th>ID</th>
-                    <th>中文姓名</th>
-                    <th>英文姓名</th>
-                    <th>聲部</th>
-                    <th>狀態</th>
-                    <th>今日已簽到</th>
-                    <th>簽到記錄</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.values(participants).map((p: Participant, index: number) => {
-                    // Calculate if signed today
-                    const now = new Date();
-                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    const signedToday = p.checkIns.some(checkIn => 
-                      new Date(checkIn) >= today
-                    );
-
-                    return (
-                      <tr key={p.id}>
-                        <td>{index + 1}</td>
-                        <td>{p.id}</td>
-                        <td>{p.name}</td>
-                        <td>{p.ename}</td>
-                        <td>{p.voice}</td>
-                        <td>{p.isValid ? '有效' : '無效'}</td>
-                        <td>{signedToday ? '是' : '否'}</td>
-                        <td>
-                          {p.checkIns && p.checkIns.length > 0 ? (
-                            <ul className="check-in-list">
-                              {p.checkIns.map((checkIn, index) => (
-                                <li key={index}>{formatToHKTime(new Date(checkIn))}</li>
-                              ))}
-                            </ul>
-                          ) : '未簽到'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+        <div className="tabs-container">
+          <div className="tabs">
+            <button 
+              className={`tab ${activeTab === 'participants' ? 'active' : ''}`}
+              onClick={() => setActiveTab('participants')}
+            >
+              參與者列表
+            </button>
+            <button 
+              className={`tab ${activeTab === 'scanRecords' ? 'active' : ''}`}
+              onClick={() => setActiveTab('scanRecords')}
+            >
+              最近掃描記錄
+            </button>
+            <button 
+              className={`tab ${activeTab === 'admin' ? 'active' : ''}`}
+              onClick={() => setActiveTab('admin')}
+            >
+              管理員登入
+            </button>
           </div>
-        )}
-      </section>
 
-      <section className="auth-section">
-        <div className="login-container">
-          <h2>管理員登入</h2>
-          {!isAuthenticated ? (
-            <form onSubmit={handlePasswordSubmit} className="login-form">
-              <input
-                type="password"
-                value={password}
-                onChange={handlePasswordChange}
-                placeholder="輸入管理員密碼"
-                className="input-field"
-              />
-              <button type="submit" className="submit-button">登入</button>
-            </form>
-          ) : (
-            <div className="admin-section">
-              <div className="section-header">
-                <h3>管理員功能</h3>
-                <button onClick={handleLock} className="lock-button">鎖定</button>
-              </div>
-              <div className="admin-controls">
-                <input
-                  type="text"
-                  value={pendingActivityName}
-                  onChange={handleCurrentActivityNameChange}
-                  placeholder="輸入當前活動名稱"
-                  className="input-field"
-                />
-                <button onClick={handleConfirmActivityName} className="confirm-button">確認活動名稱</button>
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  accept=".xlsx,.xls"
-                  className="file-input"
-                />
-                <button onClick={() => setShowUpdateConfirmation(true)} className="upload-button">上傳 Excel 檔案</button>
-                <button onClick={() => setShowClearConfirmation(true)} className="clear-button">清除所有資料</button>
-                <button onClick={handleExportExcel} className="export-button">匯出簽到記錄</button>
-                <button onClick={handleResetDailyCheckInCount} className="reset-button">重置今日總簽到次數</button>
+          <div className="tab-content">
+            {activeTab === 'participants' && (
+              <section className="participant-list-section">
+                <h2>參與者列表</h2>
+                {!isParticipantListAuthenticated ? (
+                  <form onSubmit={handleParticipantListPasswordSubmit} className="login-form">
+                    <input
+                      type="password"
+                      value={participantListPassword}
+                      onChange={handleParticipantListPasswordChange}
+                      placeholder="輸入參與者列表密碼"
+                      className="input-field"
+                    />
+                    <button type="submit" className="submit-button">查看列表</button>
+                  </form>
+                ) : (
+                  <div className="participant-list">
+                    <div className="section-header">
+                      <h3>參與者列表</h3>
+                      <div className="button-group">
+                        <button onClick={handleLockParticipantList} className="lock-button">鎖定列表</button>
+                      </div>
+                    </div>
+                    <div className="table-container">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>序號</th>
+                            <th>ID</th>
+                            <th>中文姓名</th>
+                            <th>英文姓名</th>
+                            <th>聲部</th>
+                            <th>狀態</th>
+                            <th>今日已簽到</th>
+                            <th>簽到記錄</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.values(participants).map((p: Participant, index: number) => {
+                            // Calculate if signed today
+                            const now = new Date();
+                            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                            const signedToday = p.checkIns.some(checkIn => 
+                              new Date(checkIn) >= today
+                            );
 
-                {/* Add sound test buttons here */}
-                <div className="sound-test-buttons">
-                  <h3>音效測試</h3>
-                  <button onClick={playSuccessSound} className="sound-test-button">
-                    播放成功音效
-                  </button>
-                  <button onClick={playErrorSound} className="sound-test-button">
-                    播放錯誤音效
-                  </button>
-                </div>
-
-                {/* Add sound play attempts here */}
-                <div className="sound-attempts">
-                  <h3>音效播放嘗試:</h3>
-                  <ul>
-                    {soundPlayAttempts.map((attempt, index) => (
-                      <li key={index}>{attempt}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Add sound loading status here */}
-                <div className="sound-status">
-                  <h3>音效載入狀態:</h3>
-                  <p>音效已載入: {soundsLoaded ? '是' : '否'}</p>
-                  <p>成功音效: {successAudio ? '已載入' : '未載入'}</p>
-                  <p>錯誤音效: {errorAudio ? '已載入' : '未載入'}</p>
-                </div>
-              </div>
-              <p className="upload-status">{uploadStatus}</p>
-              {showUpdateConfirmation && (
-                <div className="modal update-confirmation">
-                  <div className="modal-content">
-                    <h3>確認更新</h3>
-                    <p>您確定要上傳新的參與者資料嗎？這將會覆蓋現有的資料。</p>
-                    <div className="button-group">
-                      <button onClick={handleFileUpload} className="confirm-update-button">確認</button>
-                      <button onClick={() => setShowUpdateConfirmation(false)} className="cancel-update-button">取消</button>
+                            return (
+                              <tr key={p.id}>
+                                <td>{index + 1}</td>
+                                <td>{p.id}</td>
+                                <td>{p.name}</td>
+                                <td>{p.ename}</td>
+                                <td>{p.voice}</td>
+                                <td>{p.isValid ? '有效' : '無效'}</td>
+                                <td>{signedToday ? '是' : '否'}</td>
+                                <td>
+                                  {p.checkIns && p.checkIns.length > 0 ? (
+                                    <ul className="check-in-list">
+                                      {p.checkIns.map((checkIn, index) => (
+                                        <li key={index}>{formatToHKTime(new Date(checkIn))}</li>
+                                      ))}
+                                    </ul>
+                                  ) : '未簽到'}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-                </div>
-              )}
-              {showClearConfirmation && (
-                <div className="modal clear-confirmation">
-                  <div className="modal-content">
-                    <h3>確認清除</h3>
-                    <p>您確定要清除所有參與者資料嗎？此操作無法撤銷。</p>
-                    <div className="button-group">
-                      <button onClick={handleClearData} className="confirm-clear-button">確認</button>
-                      <button onClick={() => setShowClearConfirmation(false)} className="cancel-clear-button">取消</button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </section>
+                )}
+              </section>
+            )}
 
-      {lastSoundPlayed && (
-        <div className="sound-indicator">
-          最後播放的音效: {lastSoundPlayed === 'success' ? '成功' : '錯誤'}
+            {activeTab === 'scanRecords' && (
+              <section className="scan-list-section">
+                <h2>最近掃描記錄</h2>
+                {!isScanListAuthenticated ? (
+                  <form onSubmit={handleScanListPasswordSubmit} className="login-form">
+                    <input
+                      type="password"
+                      value={scanListPassword}
+                      onChange={handleScanListPasswordChange}
+                      placeholder="輸入掃描記錄密碼"
+                      className="input-field"
+                    />
+                    <button type="submit" className="submit-button">查看記錄</button>
+                  </form>
+                ) : (
+                  <div className="scan-list">
+                    <div className="section-header">
+                      <h3>最近掃描記錄</h3>
+                      <div className="button-group">
+                        <button onClick={handleLockScanList} className="lock-button">鎖定記錄</button>
+                        <button onClick={refreshScanEntries} className="refresh-button">刷新記錄</button>
+                      </div>
+                    </div>
+                    <table className="scan-entries-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>時間</th>
+                          <th>姓名</th>
+                          <th>狀態</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {scanEntries.map((entry, index) => (
+                          <tr key={index}>
+                            <td>{entry.id}</td>
+                            <td>{formatToHKTime(new Date(entry.time))}</td>
+                            <td>{entry.name}</td>
+                            <td>{entry.status}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {activeTab === 'admin' && (
+              <section className="scan-list-section">
+                <h2>管理員登入</h2>
+                {!isAuthenticated ? (
+                  <form onSubmit={handlePasswordSubmit} className="login-form">
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={handlePasswordChange}
+                      placeholder="輸入管理員密碼"
+                      className="input-field"
+                    />
+                    <button type="submit" className="submit-button">登入</button>
+                  </form>
+                ) : (
+                  <div className="admin-panel">
+                    <div className="section-header">
+                      <h3>管理員功能</h3>
+                      <button onClick={handleLock} className="lock-button">登出</button>
+                    </div>
+                    <div className="admin-controls">
+                      <div className="input-group">
+                        <input
+                          type="text"
+                          value={pendingActivityName}
+                          onChange={handleCurrentActivityNameChange}
+                          placeholder="HKACM 大型詩班"
+                          className="input-field"
+                        />
+                        <button onClick={handleConfirmActivityName} className="confirm-button">確認活動名稱</button>
+                      </div>
+                      <div className="file-input-container">
+                        <input
+                          type="file"
+                          onChange={handleFileChange}
+                          accept=".xlsx,.xls"
+                          className="file-input"
+                        />
+                        <button onClick={() => setShowUpdateConfirmation(true)} className="upload-button">
+                          {file ? file.name : "未選擇任何檔案"}上傳 Excel 檔案
+                        </button>
+                      </div>
+                      <div className="admin-action-buttons">
+                        <button onClick={() => setShowClearConfirmation(true)} className="admin-action-button clear-all">清除所有資料</button>
+                        <button onClick={() => setShowClearCheckInConfirmation(true)} className="admin-action-button clear-checkins">清除簽到記錄</button>
+                        <button onClick={handleExportExcel} className="admin-action-button export">匯出簽到記錄</button>
+                        <button onClick={handleResetDailyCheckInCount} className="admin-action-button reset">重置今日總簽到次數</button>
+                      </div>
+                    </div>
+
+                    {showClearCheckInConfirmation && (
+                      <div className="modal clear-confirmation">
+                        <div className="modal-content">
+                          <h3>確認清除簽到記錄</h3>
+                          <p>您確定要清除所有參與者的簽到記錄嗎？此操作無法撤銷。</p>
+                          <div className="button-group">
+                            <button 
+                              onClick={handleClearCheckInRecords} 
+                              className="confirm-clear-button"
+                              disabled={isClearingCheckIns}
+                            >
+                              確認
+                            </button>
+                            <button 
+                              onClick={() => setShowClearCheckInConfirmation(false)} 
+                              className="cancel-clear-button"
+                              disabled={isClearingCheckIns}
+                            >
+                              取消
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="sound-test-section">
+                      <h4>音效測試</h4>
+                      <div className="sound-test-buttons">
+                        <button onClick={playSuccessSound} className="sound-test-button success">播放成功音效</button>
+                        <button onClick={playErrorSound} className="sound-test-button error">播放錯誤音效</button>
+                      </div>
+                      <div className="volume-control">
+                        <label htmlFor="volume-slider">音量控制:</label>
+                        <input
+                          type="range"
+                          id="volume-slider"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={volume}
+                          onChange={handleVolumeChange}
+                        />
+                      </div>
+                      <div className="sound-attempts">
+                        <h5>音效播放嘗試:</h5>
+                        <ul>
+                          {soundPlayAttempts.slice(-5).map((attempt, index) => (
+                            <li key={index}>{attempt}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="sound-indicator">
+                        最後播放的音效: {lastPlayedSound === 'success' ? '成功' : lastPlayedSound === 'error' ? '錯誤' : '無'}
+                      </div>
+                      <div className="sound-status">
+                        <h5>音效載入狀態:</h5>
+                        <p>
+                          音效已載入: {soundsLoaded ? '是' : '否'} | 
+                          成功音效: {successAudio ? '已載入' : '未載入'} | 
+                          錯誤音效: {errorAudio ? '已載入' : '未載入'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="upload-status">{uploadStatus}</p>
+                    {showUpdateConfirmation && (
+                      <div className="modal update-confirmation">
+                        <div className="modal-content">
+                          <h3>確認更新</h3>
+                          <p>您確定要上傳新的參與者資料嗎？這將會覆蓋現有的資料。</p>
+                          <div className="button-group">
+                            <button onClick={handleFileUpload} className="confirm-update-button">確認</button>
+                            <button onClick={() => setShowUpdateConfirmation(false)} className="cancel-update-button">取消</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {showClearConfirmation && (
+                      <div className="modal clear-confirmation">
+                        <div className="modal-content">
+                          <h3>確認清除</h3>
+                          <p>您確定要清除所有參與者資料嗎？此操作無法撤銷。</p>
+                          <div className="button-group">
+                            <button onClick={handleClearData} className="confirm-clear-button">確認</button>
+                            <button onClick={() => setShowClearConfirmation(false)} className="cancel-clear-button">取消</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+          </div>
         </div>
-      )}
+      </main>
     </div>
   );
 }
