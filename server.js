@@ -7,6 +7,10 @@ const path = require('path');
 const moment = require('moment-timezone');
 const https = require('https');
 const os = require('os');
+const cors = require('cors');
+
+// Remove this line as fs is already imported above
+// const fs = require('fs');
 
 const app = express();
 
@@ -54,6 +58,12 @@ const localNetworkIP = networkInterfaces.en0 ? networkInterfaces.en0.find(iface 
 
 // Update CORS configuration
 app.use(bodyParser.json());
+
+app.use(cors({
+  origin: ['https://192.168.0.119:3000', 'https://192.168.0.21:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 let participants = {};
 let isDemoMode = true;
@@ -364,15 +374,28 @@ app.post('/api/clear-check-in-records', (req, res) => {
   }
 });
 
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working' });
+});
+
 const options = {
   key: fs.readFileSync('key.pem'),
   cert: fs.readFileSync('cert.pem')
 };
 
+const startServer = (port) => {
+  https.createServer(options, app).listen(port, '0.0.0.0', () => {
+    console.log(`Server is running on https://0.0.0.0:${port}`);
+    console.log(`Also available on your network at https://${localNetworkIP}:${port}`);
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`Port ${port} is busy, trying with port ${port + 1}`);
+      startServer(port + 1);
+    } else {
+      console.error('Error starting server:', err);
+    }
+  });
+};
+
 const PORT = process.env.PORT || 3001;
-https.createServer(options, app).listen(PORT, '0.0.0.0', () => {
-  console.log(`HTTPS Server is running on port ${PORT}`);
-  console.log(`Server accessible at:`);
-  console.log(`- https://localhost:${PORT}`);
-  console.log(`- https://${localNetworkIP}:${PORT}`);
-});
+startServer(PORT);

@@ -21,7 +21,7 @@ interface ParticipantsList {
 }
 
 // Define a constant for the base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || window.location.origin;
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://192.168.0.119:3001/api';
 // Add this interface for scan entries
 interface ScanEntry {
   id: string;
@@ -42,6 +42,31 @@ function formatToHKTime(date: Date): string {
     hour12: false
   });
 }
+
+// 將這個函數移到組件外部
+const loadSounds = async (context: AudioContext) => {
+  try {
+    const loadSound = async (url: string) => {
+      console.log(`Attempting to load sound from: ${url}`);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      return await context.decodeAudioData(arrayBuffer);
+    };
+
+    const [success, error] = await Promise.all([
+      loadSound('/sounds/success.mp3'),
+      loadSound('/sounds/error.mp3')
+    ]);
+
+    return { success, error };
+  } catch (error) {
+    console.error('Error loading sounds:', error);
+    throw error;
+  }
+};
 
 function App() {
   const [manualEntry, setManualEntry] = useState('');
@@ -67,7 +92,7 @@ function App() {
   const [participants, setParticipants] = useState<ParticipantsList>({});
 
   // Dynamically construct the API URL based on the current hostname
-  const API_URL = `${API_BASE_URL}/api`;
+  const API_URL = API_BASE_URL;
 
   const [scanning, setScanning] = useState(false);
   const [autoScan, setAutoScan] = useState(false);
@@ -121,27 +146,55 @@ function App() {
 
   const [volume, setVolume] = useState(1); // 1 is max volume, 0 is muted
 
+  const [audioContextInitialized, setAudioContextInitialized] = useState(false);
+
+  // 在組件頂部添加這個函數
+  const initializeAudioContext = useCallback(() => {
+    if (!audioContextInitialized) {
+      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+      setAudioContext(context);
+      setAudioContextInitialized(true);
+      loadSounds(context).then(({ success, error }) => {
+        setSuccessAudio(success);
+        setErrorAudio(error);
+        setSoundsLoaded(true);
+        console.log('Sounds loaded successfully');
+      }).catch(error => {
+        setError('無法載入音效檔案。請確保檔案存在且可訪問。');
+      });
+    }
+  }, [audioContextInitialized]);
+
   const getCameras = useCallback(async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        throw new Error('mediaDevices API or enumerateDevices is not supported in this browser.');
+      }
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === 'videoinput');
       setCameras(videoDevices);
       if (videoDevices.length > 0 && !selectedCamera) {
         setSelectedCamera(videoDevices[0].deviceId);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error getting cameras:', error);
-      setError('無法獲取攝像頭列表');
+      if (error instanceof Error) {
+        setError('無法獲取攝像頭列表: ' + error.message);
+      } else {
+        setError('無法獲取攝像頭列表: 未知錯誤');
+      }
     }
   }, [selectedCamera]);
 
 
   useEffect(() => {
     getCameras();
-    navigator.mediaDevices.addEventListener('devicechange', getCameras);
-    return () => {
-      navigator.mediaDevices.removeEventListener('devicechange', getCameras);
-    };
+    if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+      navigator.mediaDevices.addEventListener('devicechange', getCameras);
+      return () => {
+        navigator.mediaDevices.removeEventListener('devicechange', getCameras);
+      };
+    }
   }, [getCameras]);
 
 
@@ -214,6 +267,7 @@ function App() {
 
   const handleManualSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    initializeAudioContext();
     if (manualEntry.trim()) {
       await checkParticipant(manualEntry);
       setManualEntry('');
@@ -225,44 +279,12 @@ function App() {
   };
 
   useEffect(() => {
-    const loadSounds = async () => {
-      try {
-        const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-        setAudioContext(context);
-
-        const loadSound = async (url: string) => {
-          console.log(`Attempting to load sound from: ${url}`);
-          const response = await fetch(url);
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          const arrayBuffer = await response.arrayBuffer();
-          return await context.decodeAudioData(arrayBuffer);
-        };
-
-        const [success, error] = await Promise.all([
-          loadSound('/sounds/success.mp3'),
-          loadSound('/sounds/error.mp3')
-        ]);
-
-        setSuccessAudio(success);
-        setErrorAudio(error);
-        setSoundsLoaded(true);
-        console.log('Sounds loaded successfully');
-      } catch (error) {
-        console.error('Error loading sounds:', error);
-        setError('無法載入音效檔案。請確保檔案存在且可訪問。');
-      }
-    };
-
-    loadSounds();
-
     return () => {
       if (audioContext) {
         audioContext.close();
       }
     };
-  }, []);
+  }, [audioContext]);
 
   const playSound = useCallback((buffer: AudioBuffer | null, type: 'success' | 'error') => {
     console.log(`Attempting to play ${type} sound`);
@@ -510,7 +532,7 @@ function App() {
 
   const fetchTotalPeople = async () => {
     try {
-      const response = await axios.get(`${API_URL}/total-people`);
+      const response = await axios.get(`${API_BASE_URL}/total-people`);
       setTotalPeople(response.data.totalPeople);
     } catch (error) {
       console.error('Error fetching total number of people:', error);
@@ -560,7 +582,7 @@ function App() {
 
   const fetchDailyCheckInCount = async () => {
     try {
-      const response = await axios.get(`${API_URL}/daily-check-in-count`);
+      const response = await axios.get(`${API_BASE_URL}/daily-check-in-count`);
       setDailyCheckInCount(response.data.dailyCheckInCount);
     } catch (error) {
       console.error('Error fetching daily check-in count:', error);
@@ -587,7 +609,7 @@ function App() {
   // Add this function to fetch the current activity name
   const fetchCurrentActivity = async () => {
     try {
-      const response = await axios.get(`${API_URL}/current-activity`);
+      const response = await axios.get(`${API_BASE_URL}/current-activity`);
       const activityName = response.data.currentActivityName || 'HKACM';
       setCurrentActivityName(activityName);
       setPendingActivityName(activityName);
@@ -603,7 +625,7 @@ function App() {
   // Add this function to fetch scan entries
   const fetchScanEntries = async () => {
     try {
-      const response = await axios.get(`${API_URL}/scan-entries`);
+      const response = await axios.get(`${API_BASE_URL}/scan-entries`);
       setScanEntries(response.data);
     } catch (error) {
       console.error('Error fetching scan entries:', error);
@@ -614,13 +636,13 @@ function App() {
   // Add this function to refresh scan entries
   const refreshScanEntries = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_URL}/scan-entries`);
+      const response = await axios.get(`${API_BASE_URL}/scan-entries`);
       setScanEntries(response.data);
     } catch (error) {
       console.error('Error fetching scan entries:', error);
       setError('無法獲取掃描記錄');
     }
-  }, [API_URL]);
+  }, [API_BASE_URL]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -746,6 +768,17 @@ function App() {
     const newVolume = parseFloat(event.target.value);
     setVolume(newVolume);
   };
+
+  axios.interceptors.response.use(
+    response => response,
+    error => {
+      if (error.code === 'EPROTO') {
+        console.error('EPROTO error occurred. This might be due to a protocol mismatch.');
+        // You can choose to retry the request here if needed
+      }
+      return Promise.reject(error);
+    }
+  );
 
   return (
     <div className="App">
