@@ -10,7 +10,9 @@
     "preserver": "node -e \"const ip = require('./get-ip.js'); console.log('Backend will use IP:', ip); require('fs').writeFileSync('.env', 'SERVER_IP=' + ip + '\\n');\"",
     "server": "node -r dotenv/config server.js",
     "dev": "concurrently \"npm run start\" \"npm run server\"",
-    "generate-cert": "node generate-cert.js"
+    "generate-cert": "node generate-cert.js",
+    "docker:build:windows": "docker build -t qr-checkin-app-windows -f Dockerfile.windows .",
+    "docker:run:windows": "docker run -p 3000:3000 -p 3001:3001 qr-checkin-app-windows"
   },
   "dependencies": {
     "@types/file-saver": "^2.0.7",
