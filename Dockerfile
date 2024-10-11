@@ -1,50 +1,30 @@
 # Stage 1: Build the React frontend
-FROM node:14 as frontend-build
-
-# Set environment variable
-ENV REACT_APP_API_URL=https://192.168.0.119:3001/api
-
+FROM node:14 AS frontend-build
 WORKDIR /app
-
-# Copy package.json and package-lock.json
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
-
-# Copy the rest of the frontend code
 COPY . .
-
-# Build the React app
 RUN npm run build
 
-# Stage 2: Create the final image
-FROM node:14
-
+# Stage 2: Set up the production environment
+FROM node:14-alpine
 WORKDIR /app
 
 # Copy built frontend from stage 1
 COPY --from=frontend-build /app/build ./frontend
 
 # Copy backend files
-COPY server.js ./
-COPY package*.json ./
+COPY server.js package*.json ./
+COPY get-ip.js ./
 
 # Install production dependencies
 RUN npm install --only=production
 
-# Copy certificates
+# Copy certificates (make sure these are not sensitive production certs)
 COPY cert.pem key.pem ./
-
-# Copy data files
-COPY participants_data.json current_activity.json ./
 
 # Create uploads directory
 RUN mkdir uploads
-
-# Copy start script
-COPY start.sh ./
-RUN chmod +x start.sh
 
 # Install serve to run the frontend
 RUN npm install -g serve
@@ -53,4 +33,4 @@ RUN npm install -g serve
 EXPOSE 3000 3001
 
 # Start both frontend and backend
-CMD ["./start.sh"]
+CMD ["sh", "-c", "node get-ip.js && npm run server & serve -s frontend -l 3000"]

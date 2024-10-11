@@ -5,7 +5,7 @@ const XLSX = require('xlsx');
 const fs = require('fs');
 const path = require('path');
 const moment = require('moment-timezone');
-const https = require('https');
+const https = require('https'); // Change this from http to https
 const os = require('os');
 const cors = require('cors');
 
@@ -59,8 +59,16 @@ const localNetworkIP = networkInterfaces.en0 ? networkInterfaces.en0.find(iface 
 // Update CORS configuration
 app.use(bodyParser.json());
 
+require('dotenv').config();
+
+// Use process.env.SERVER_IP instead of hardcoding the IP
 app.use(cors({
-  origin: ['https://192.168.0.119:3000', 'https://192.168.0.21:3000'],
+  origin: [
+    'https://localhost:3000',
+    'http://localhost:3000',
+    `https://${process.env.SERVER_IP}:3000`,
+    `http://${process.env.SERVER_IP}:3000`
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -386,7 +394,7 @@ const options = {
 const startServer = (port) => {
   https.createServer(options, app).listen(port, '0.0.0.0', () => {
     console.log(`Server is running on https://0.0.0.0:${port}`);
-    console.log(`Also available on your network at https://${localNetworkIP}:${port}`);
+    console.log(`Also available on your network at https://${process.env.SERVER_IP}:${port}`);
   }).on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       console.log(`Port ${port} is busy, trying with port ${port + 1}`);

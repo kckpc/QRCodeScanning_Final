@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "QR Code Check-in Application",
   "scripts": {
-    "start": "cross-env HTTPS=true SSL_CRT_FILE=cert.pem SSL_KEY_FILE=key.pem HOST=0.0.0.0 REACT_APP_API_URL=https://192.168.0.119:3001/api react-scripts start",
+    "prestart": "node -e \"const ip = require('./get-ip.js'); console.log('Frontend will use API URL:', 'https://' + ip + ':3001/api'); require('fs').writeFileSync('.env.local', 'REACT_APP_API_URL=https://' + ip + ':3001/api\\n');\"",
+    "start": "cross-env HTTPS=true SSL_CRT_FILE=cert.pem SSL_KEY_FILE=key.pem HOST=0.0.0.0 REACT_APP_WEBPACK_RESOLVE_FALLBACK='{\"https\":false}' DANGEROUSLY_DISABLE_HOST_CHECK=true react-scripts start",
     "start:prod": "serve -s build -l 3000 --ssl-cert cert.pem --ssl-key key.pem",
     "build": "react-scripts build",
-    "server": "node server.js",
+    "preserver": "node -e \"const ip = require('./get-ip.js'); console.log('Backend will use IP:', ip); require('fs').writeFileSync('.env', 'SERVER_IP=' + ip + '\\n');\"",
+    "server": "node -r dotenv/config server.js",
     "dev": "concurrently \"npm run start\" \"npm run server\"",
     "generate-cert": "node generate-cert.js"
   },
@@ -34,7 +36,8 @@
   "devDependencies": {
     "concurrently": "^8.2.1",
     "cross-env": "^7.0.3",
-    "serve": "^14.2.1"
+    "serve": "^14.2.1",
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
   },
   "eslintConfig": {
     "extends": [

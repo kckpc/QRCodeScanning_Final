@@ -21,7 +21,7 @@ interface ParticipantsList {
 }
 
 // Define a constant for the base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://192.168.0.119:3001/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || `https://${window.location.hostname}:3001/api`;
 // Add this interface for scan entries
 interface ScanEntry {
   id: string;
@@ -43,9 +43,9 @@ function formatToHKTime(date: Date): string {
   });
 }
 
-// 將這個函數移到組件外部
-const loadSounds = async (context: AudioContext) => {
+const loadSounds = async () => {
   try {
+    const context = new (window.AudioContext || (window as any).webkitAudioContext)();
     const loadSound = async (url: string) => {
       console.log(`Attempting to load sound from: ${url}`);
       const response = await fetch(url);
@@ -61,11 +61,43 @@ const loadSounds = async (context: AudioContext) => {
       loadSound('/sounds/error.mp3')
     ]);
 
-    return { success, error };
+    return { context, success, error };
   } catch (error) {
     console.error('Error loading sounds:', error);
     throw error;
   }
+};
+
+const useAudio = () => {
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [successAudio, setSuccessAudio] = useState<AudioBuffer | null>(null);
+  const [errorAudio, setErrorAudio] = useState<AudioBuffer | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    loadSounds().then(({ context, success, error }) => {
+      setAudioContext(context);
+      setSuccessAudio(success);
+      setErrorAudio(error);
+      setIsLoaded(true);
+    }).catch(err => {
+      console.error('Failed to load sounds:', err);
+    });
+  }, []);
+
+  const playSound = useCallback((type: 'success' | 'error') => {
+    if (!audioContext || !successAudio || !errorAudio) {
+      console.error('Audio not initialized');
+      return;
+    }
+
+    const source = audioContext.createBufferSource();
+    source.buffer = type === 'success' ? successAudio : errorAudio;
+    source.connect(audioContext.destination);
+    source.start(0);
+  }, [audioContext, successAudio, errorAudio]);
+
+  return { playSound, isLoaded };
 };
 
 function App() {
@@ -148,22 +180,7 @@ function App() {
 
   const [audioContextInitialized, setAudioContextInitialized] = useState(false);
 
-  // 在組件頂部添加這個函數
-  const initializeAudioContext = useCallback(() => {
-    if (!audioContextInitialized) {
-      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-      setAudioContext(context);
-      setAudioContextInitialized(true);
-      loadSounds(context).then(({ success, error }) => {
-        setSuccessAudio(success);
-        setErrorAudio(error);
-        setSoundsLoaded(true);
-        console.log('Sounds loaded successfully');
-      }).catch(error => {
-        setError('無法載入音效檔案。請確保檔案存在且可訪問。');
-      });
-    }
-  }, [audioContextInitialized]);
+  const { playSound, isLoaded: isSoundLoaded } = useAudio();
 
   const getCameras = useCallback(async () => {
     try {
@@ -267,7 +284,6 @@ function App() {
 
   const handleManualSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    initializeAudioContext();
     if (manualEntry.trim()) {
       await checkParticipant(manualEntry);
       setManualEntry('');
@@ -285,36 +301,6 @@ function App() {
       }
     };
   }, [audioContext]);
-
-  const playSound = useCallback((buffer: AudioBuffer | null, type: 'success' | 'error') => {
-    console.log(`Attempting to play ${type} sound`);
-    setSoundPlayAttempts(prev => [...prev, `Attempted to play ${type} sound at ${new Date().toISOString()}`]);
-    
-    if (audioContext && buffer) {
-      const source = audioContext.createBufferSource();
-      const gainNode = audioContext.createGain();
-      
-      source.buffer = buffer;
-      source.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      // Set the volume
-      gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-      
-      source.start();
-      console.log(`${type} sound played successfully`);
-      setLastSoundPlayed(type);
-      setLastPlayedSound(type);
-    } else {
-      console.log(`Failed to play ${type} sound: ${audioContext ? 'Buffer is null' : 'AudioContext is null'}`);
-      if (!audioContext) {
-        console.error('AudioContext is null. This should not happen after sounds are loaded.');
-      }
-      if (!buffer) {
-        console.error(`${type} sound buffer is null. Check if the sound file was loaded correctly.`);
-      }
-    }
-  }, [audioContext, volume]);
 
   const checkParticipant = useCallback(async (id: string) => {
     console.log('Checking participant with ID:', id);
@@ -356,12 +342,16 @@ function App() {
         await fetchParticipants();
         setManualEntry('');
 
-        playSound(successAudio, 'success');
+        if (isSoundLoaded) {
+          playSound('success');
+        }
       } else {
         setParticipant(null);
         setLastCheckInStatus(`ID: ${id} - ${response.data.message}`);
 
-        playSound(errorAudio, 'error');
+        if (isSoundLoaded) {
+          playSound('error');
+        }
       }
       setError(null);
     } catch (err: unknown) {
@@ -374,14 +364,16 @@ function App() {
         setError('發生未知錯誤');
       }
 
-      playSound(errorAudio, 'error');
+      if (isSoundLoaded) {
+        playSound('error');
+      }
     } finally {
       setIsLoading(false);
       if (autoScan) {
         setTimeout(() => setScanning(true), 2000);
       }
     }
-  }, [autoScan, currentActivityName, isDemoMode, playSound, successAudio, errorAudio, API_URL]);
+  }, [autoScan, currentActivityName, isDemoMode, playSound, isSoundLoaded, API_URL]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -685,12 +677,12 @@ function App() {
   // Add these two functions to manually trigger sounds
   const playSuccessSound = () => {
     console.log('Manually triggering success sound');
-    playSound(successAudio, 'success');
+    playSound('success');
   };
 
   const playErrorSound = () => {
     console.log('Manually triggering error sound');
-    playSound(errorAudio, 'error');
+    playSound('error');
   };
 
   // Add new function to handle participant list password submission
